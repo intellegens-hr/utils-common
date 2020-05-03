@@ -1,0 +1,3 @@
+# Intellegens Utils: Commons, .NET Core
+
+...
