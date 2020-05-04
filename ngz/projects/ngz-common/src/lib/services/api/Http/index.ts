@@ -169,30 +169,3 @@ export class HttpServiceError {
   constructor (errors) { this.codes = errors.map(err => err.code); }
   public codes: string[];
 }
-
-/**
- * Intercepts HTTP requests and injects authentication token
- */
-@Injectable()
-export class AuthTokenInjector implements HttpInterceptor {
-
-  public intercept (req: HttpRequest<any>, next: HttpHandler) {
-
-    // Get authentication token
-    const token = HttpService.getAuthToken();
-    if (token) {
-
-      // Inject token into request
-      const authenticatedReq = req.clone({ headers: req.headers.set('Authorization', `Bearer ${ token }`) });
-      return next.handle(authenticatedReq);
-
-    } else {
-
-      // Continue processing unmodified request
-      return next.handle(req);
-
-    }
-  }
-
-}
-
