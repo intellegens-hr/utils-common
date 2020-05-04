@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Intellegens.Commons.Result
+namespace Intellegens.Commons.Results
 {
     public static class ResultExtensions
     {
