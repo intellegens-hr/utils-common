@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Intellegens.Commons.Results
 {
@@ -21,11 +19,18 @@ namespace Intellegens.Commons.Results
             };
 
         public static ApiResult<T> ToApiResult<T>(this Result<T> result)
-            => new ApiResult<T>
+        {
+            var apiResult = new ApiResult<T>
             {
                 Success = result.Success,
                 Errors = result.Errors,
-                Data = new List<T> { result.Data }
+                Data = new List<T> { }
             };
+
+            if (result.Data != null)
+                apiResult.Data.Add(result.Data);
+
+            return apiResult;
+        }
     }
 }
