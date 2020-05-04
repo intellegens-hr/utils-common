@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Intellegens.Commons.Result
+namespace Intellegens.Commons.Results
 {
     public class Result
     {

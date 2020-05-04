@@ -11,7 +11,6 @@ namespace Intellegens.Commons.Validation
     {
         private static List<PropertyInfo> GetPropertiesToValidate<T>()
         {
-            var type = typeof(T);
             return typeof(T)
                 .GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public)
                 //.Where(x => x.CustomAttributes.Where(x => x.AttributeType == typeof(ValidationPropertyAttribute)).Any())
