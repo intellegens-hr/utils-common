@@ -3,3 +3,6 @@
 ################################################################################
 
 /.vs
+/dotnetcore/.vs/DotnetCoreCommons/v16
+/dotnetcore/Intellegens.Commons/bin/Debug/netcoreapp3.1
+/dotnetcore/Intellegens.Commons/obj
