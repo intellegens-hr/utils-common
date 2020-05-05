@@ -21,7 +21,7 @@ namespace Intellegens.Commons.Search
         }
 
         private string GetOrderingString(SearchOrder order)
-            => $"{order.Key} {(order.Ascending ? "asc" : "desc")}";
+            => $"{order.Key} {(order.Ascending ? "ascending" : "descending")}";
 
         private static readonly ParsingConfig parsingConfig = new ParsingConfig
         {
