@@ -127,20 +127,12 @@ class ApiEndpointToGridAdapterInternal {
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component
  */
 export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
-  constructor (private _endpointFactory: ApiEndpointFactory) {
-    super();
-  }
 
   /**
-   * Binds service instance to a particular endpoint
-   * @param endpoint Endpoint name (relative path)
-   * @param entt (Optional) EnTT class to cast response as
+   * Gets underlying endpoint service instance
    */
-  public bind (endpoint: string, entt?: (new() => EnTT)) {
-    // (Re)Create endpoint instance
-    this._endpoint = this._endpointFactory.create(endpoint, entt);
-    // Bind to endpoint
-    this._bind(endpoint, entt);
+  public get endpoint () {
+    return this._endpoint;
   }
 
   /**
@@ -169,6 +161,29 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
    */
   public get dataLength () {
     return this._dataLength;
+  }
+
+  constructor (private _endpointFactory: ApiEndpointFactory) {
+    super();
+  }
+
+  /**
+   * Binds service instance to a particular endpoint
+   * @param endpoint Endpoint name (relative path)
+   * @param entt (Optional) EnTT class to cast response as
+   */
+  public bind (endpoint: string, entt?: (new() => EnTT)) {
+    // (Re)Create endpoint instance
+    this._endpoint = this._endpointFactory.create(endpoint, entt);
+    // Bind to endpoint
+    this._bind(endpoint, entt);
+  }
+
+  /**
+   * Repeats latest search request
+   */
+  public refresh () {
+    this._search();
   }
 
   /**
