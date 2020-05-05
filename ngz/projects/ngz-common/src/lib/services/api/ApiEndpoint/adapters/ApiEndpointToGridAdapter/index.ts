@@ -25,6 +25,11 @@ class ApiEndpointToGridAdapterInternal {
   protected _preload = true;
 
   /**
+   * Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
+   */
+  protected _pageLength = 20;
+
+  /**
    * Holds search request parameters
    */
   protected _req = new ApiSearchRequestModel();
@@ -49,6 +54,7 @@ class ApiEndpointToGridAdapterInternal {
     this._endpoint.bind(endpoint, entt);
     // Reset request
     this._req = new ApiSearchRequestModel();
+    this._req.limit = this._pageLength;
     // Search (after timeout to allow additional configuration)
     setTimeout(() => { this._search(); });
   }
@@ -139,10 +145,16 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
 
   /**
    * Gets/Sets value controlling if all data will be preloaded in advance and all later processing will be handled locally,
-   * or if only visible data will be loaded at any time and all data processing wil lbe deferred to the api endpoint.
+   * or if only visible data will be loaded at any time and all data processing wil lbe deferred to the api endpoint
    */
   public set preload (value) { this._preload = value; }
   public get preload () { return this._preload; }
+
+  /**
+   * Gets/Sets Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
+   */
+  public set pageLength (value) { this._pageLength = value; }
+  public get pageLength () { return this._pageLength; }
 
 
   /**
