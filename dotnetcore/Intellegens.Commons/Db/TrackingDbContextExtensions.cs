@@ -1,45 +1,64 @@
 ﻿using Intellegens.Commons.Db.BaseEntities;
-using Intellegens.Commons.Db.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace Intellegens.Commons.Db
 {
     public static class TrackingDbContextExtensions
     {
-        /// <summary>
-        /// In context's change tracker, goes through all entities and sets tracking data (user/date created/modified)
-        /// </summary>
-        /// <param name="dbContext"></param>
-        /// <param name="userData"></param>
-        public static void SetEntityTrackingData(this DbContext dbContext, IUserData userData)
+        private static readonly Dictionary<Type, List<Type>> typesCache = new Dictionary<Type, List<Type>>();
+
+        public static List<Type> GetDbContextBaseEntityTypesCached<TContext, TKey>(this TContext dbContext)
+            where TContext : TrackingDbContextAbstract<TKey>
         {
-            var entriesToCheck = dbContext.ChangeTracker
-                .Entries()
-                .Where(x => x.State == EntityState.Added || x.State == EntityState.Modified)
-                .Where(x => x.Entity is BaseEntityAbstract)
-                .Select(x => new
-                {
-                    x.State,
-                    Entity = x.Entity as BaseEntityAbstract
-                });
+            var dbContextType = dbContext.GetType();
 
-            foreach (var entry in entriesToCheck)
+            if (!typesCache.ContainsKey(dbContextType))
             {
-                if (entry.State == EntityState.Added)
-                {
-                    entry.Entity.TimeCreated = DateTime.UtcNow;
-                    entry.Entity.UserCreatedId = userData.GetUserId();
-                }
+                var props = dbContext
+                    .GetType()
+                    .GetProperties()
+                    .Where(x => x.PropertyType.IsGenericType && x.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
+                    .Select(x => x.PropertyType.GenericTypeArguments[0])
+                    .Where(x => x.BaseType == null || x.BaseType == typeof(BaseEntityAbstract<TKey>))
+                    .ToList();
 
-                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
-                {
-                    entry.Entity.TimeUpdated = DateTime.UtcNow;
-                    entry.Entity.UserUpdatedId = userData.GetUserId();
-                }
+                typesCache[dbContextType] = props;
+            }
+
+            return typesCache[dbContextType];
+        }
+
+        public enum ComparisonTypes
+        {
+            EQUAL, NOTEQUAL
+        }
+
+        public static void SetGlobalQueryFilter<TContext, TKey>(this TContext dbContext, ModelBuilder modelBuilder, string baseEntityPropertyName, object ExpectedValue, ComparisonTypes comparisonType = ComparisonTypes.EQUAL)
+            where TContext : TrackingDbContextAbstract<TKey>
+        {
+            foreach (var type in dbContext.GetDbContextBaseEntityTypesCached<TContext, TKey>())
+            {
+                var entityTypeBuilder = modelBuilder.Entity(type);
+
+                var entityParameter = Expression.Parameter(type, "entity");
+                var exprLeft = Expression.Property(entityParameter, baseEntityPropertyName);
+                var exprRigt = Expression.Constant(ExpectedValue);
+
+                BinaryExpression body = null;
+
+                if (comparisonType == ComparisonTypes.EQUAL)
+                    body = Expression.Equal(exprLeft, exprRigt);
+                else if (comparisonType == ComparisonTypes.NOTEQUAL)
+                    body = Expression.NotEqual(exprLeft, exprRigt);
+
+                var delegateType = typeof(Func<,>).MakeGenericType(type, typeof(bool));
+                var queryFilterLambda = Expression.Lambda(delegateType, body, entityParameter);
+
+                entityTypeBuilder.HasQueryFilter(queryFilterLambda);
             }
         }
     }

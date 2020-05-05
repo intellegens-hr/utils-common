@@ -8,16 +8,16 @@ using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Db
 {
-    public abstract class TrackingDbContextAbstract : DbContext
+    public abstract class TrackingDbContextAbstract<TKey> : DbContext
     {
-        protected IUserData userData;
+        protected IUserData<TKey> userData;
 
-        public TrackingDbContextAbstract(IUserData userData, DbContextOptions options) : base(options)
+        public TrackingDbContextAbstract(IUserData<TKey> userData, DbContextOptions options) : base(options)
         {
             this.userData = userData;
         }
 
-        protected TrackingDbContextAbstract(IUserData userData)
+        protected TrackingDbContextAbstract(IUserData<TKey> userData)
         {
             this.userData = userData;
         }

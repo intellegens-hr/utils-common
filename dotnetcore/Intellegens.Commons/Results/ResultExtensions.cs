@@ -32,5 +32,20 @@ namespace Intellegens.Commons.Results
 
             return apiResult;
         }
+
+        public static ApiResult<T> ToApiResult<T>(this Result<List<T>> result)
+        {
+            var apiResult = new ApiResult<T>
+            {
+                Success = result.Success,
+                Errors = result.Errors,
+                Data = new List<T> { }
+            };
+
+            if (result.Data != null)
+                apiResult.Data.AddRange(result.Data);
+
+            return apiResult;
+        }
     }
 }
