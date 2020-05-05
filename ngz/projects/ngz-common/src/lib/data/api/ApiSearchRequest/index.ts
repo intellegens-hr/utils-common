@@ -78,11 +78,11 @@ export class ApiSearchRequestModel extends ApiRequestModel {
   /**
    * Array of filters to search by
    */
-  @Serializable({ alias: 'filter', cast: [ApiSearchRequestFilterModel] })
+  @Serializable({ cast: [ApiSearchRequestFilterModel] })
   public filters = [];
   /**
    * Array of ordering rules to order the searched for results by
    */
-  @Serializable({ alias: 'order', cast: [ApiSearchRequestOrderModel] })
+  @Serializable({ cast: [ApiSearchRequestOrderModel] })
   public ordering = [];
 }
