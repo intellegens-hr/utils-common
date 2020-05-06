@@ -1,6 +1,6 @@
 {
-  "name": "ngz-common",
-  "version": "0.0.1",
+  "name": "@intellegens/ngz-common",
+  "version": "1.0.1",
   "peerDependencies": {
     "@angular/common": "^9.1.4",
     "@angular/core": "^9.1.4",

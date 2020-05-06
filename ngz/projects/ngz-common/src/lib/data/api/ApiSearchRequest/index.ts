@@ -29,11 +29,10 @@ export class ApiSearchRequestFilterModel extends EnTT {
   /**
    * Enumerates allowed ApiSearchRequestFilterModel.type values
    */
-  static get Type () {
-    return {
-      Default: 1
-    };
-  }
+  // tslint:disable-next-line: variable-name
+  public static Type = {
+    Default: 1
+  };
 
   constructor () { super(); super.entt(); }
 
@@ -59,9 +58,8 @@ export class ApiSearchRequestModel extends ApiRequestModel {
   /**
    * Enumerates allowed ApiSearchRequestFilterModel.type values
    */
-  static get FilterType () {
-    return ApiSearchRequestFilterModel.Type;
-  }
+  // tslint:disable-next-line: variable-name
+  public static FilterType = ApiSearchRequestFilterModel.Type;
 
   constructor () { super(); super.entt(); }
 

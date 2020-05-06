@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
-import { EnTT, Serializable } from '@ofzza/entt-rxjs';
+import { EnTT } from '@ofzza/entt-rxjs';
 
 /**
  * Base request data-model
