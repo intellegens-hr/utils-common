@@ -3,27 +3,174 @@
 Angular library containing reusable code shared between multiple projects ...
 
 
-## How to
+## Usage
 
-### Development server
+```ts
+import { CommonUtilsModule } from '@intellegens/ngz-common'
+```
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+### AuthTokenInjector
 
-### Build
+```ts
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { AuthTokenInjector } from '@intellegens/ngz-common';
+
+@NgModule({
+  providers: [
+    // Inject HTTP Authentication token injection interceptor
+    { provide: HTTP_INTERCEPTORS, useClass: AuthTokenInjector, multi: true }
+  ]
+})
+class MyModule {}
+
+
+```
+
+### HttpService
+
+```ts
+import { HttpService } from '@intellegens/ngz-common';
+
+class MyComponent {
+  constructor (private http: HttpService) {
+
+    // Set authentication token
+    HttpService.setAuthToken('abcdef')
+
+    // Initialize API base url
+    this.http.initialize('/api');
+
+    // Use HTTP service
+    try {
+      const data = await this.http.request('POST', '/resources', {
+        body:    {}
+        query:   {},
+        headers: {},
+        options: {}
+      });
+    } catch (err) {}
+
+    // Use HTTP service to get raw request
+    try {
+      const res = await this.http._request('POST', '/resources', {
+        body:    {}
+        query:   {},
+        headers: {},
+        options: {}
+      });
+    } catch (err) {}
+
+    // Run request and then cancel it
+    const req = this.http._request('GET', '/resources');
+    setTimeout(() => { req.cancel(); }, 100)
+    try {
+      const res = await req;
+    } catch (err) {}
+
+  }
+}
+```
+
+### ApiEndpoint
+
+```ts
+import { EnTT } from '@ofzza/entt-rxjs'
+import { ApiEndpointFactory } from '@intellegens/ngz-common';
+
+class ResourceModel extends EnTT { /* ... */}
+
+class MyComponent {
+  constructor (private endpointFactory: ApiEndpointFactory) {
+
+    // Initialize endpoint(s)
+    this.endpointRaw = this.endpointFactory('/resource');
+    this.endpointEnTT = this.endpointFactory('/resource', ResourceModel);
+
+    // Get list of all resources from endpoint
+    const dataRaw: object[]             = await this.endpointRaw.list(),
+          dataEnTT: ResourceModel[] = await this.endpointEnTT.list();
+
+    // Search, order and paginate resources from endpoint
+    const searchReq                     = new ApiSearchRequestModel(), // Edit properties to set search
+          dataRaw: object[]             = await this.endpointRaw.search(searchReq),
+          dataEnTT: ResourceModel[] = await this.endpointEnTT.search(searchReq);
+
+    // Get single resource
+    const dataRaw: object               = await this.endpointRaw.get(id),
+          dataEnTT: ResourceModel   = await this.endpointEnTT.get(id);
+
+    // Create single resource
+    const dataRaw: object               = await this.endpointRaw.create(resource),
+          dataEnTT: ResourceModel   = await this.endpointEnTT.create(resource);
+
+    // Update single resource
+    const dataRaw: object               = await this.endpointRaw.update(resource.id, resource),
+          dataEnTT: ResourceModel   = await this.endpointEnTT.update(resource.id, resource);
+
+    // Delete single resource
+    await this.endpointRaw.delete(id),
+    await this.endpointEnTT.delete(id);
+
+  }
+}
+```
+
+### ApiEndpointToGridAdapter
+
+```ts
+import { ApiEndpointToGridAdapterFactory } from '@intellegens/ngz-common';
+
+class ResourceModel extends EnTT { /* ... */}
+
+class MyClass {
+  constructor (public _adapterFactory: ApiEndpointToGridAdapterFactory) {
+    this._adapter = this._adapterFactory.create('/resources', ResourceModel);
+    this._adapter.configure({
+      preload: false,
+      debounceInterval: 400,
+      defaultPageLength: 20
+    });
+  }
+}
+```
+
+```html
+<ngz-grid [dataSource]="_adapter.dataSource" [dataLength]="_adapter.dataLength" (changed)="_adapter.changed($event)"></ngz-grid>
+```
+
+### ApiEndpointToAutocompleteAdapter
+
+```ts
+import { ApiEndpointToAutocompleteAdapterFactory } from '@intellegens/ngz-common';
+
+class ResourceModel extends EnTT { /* ... */}
+
+class MyClass {
+  constructor (public _adapterFactory: ApiEndpointToAutocompleteAdapterFactory) {
+    this._adapter = this._adapterFactory.create('/resources', 'title', ResourceModel);
+    this._adapter.configure({
+      preload: false,
+      debounceInterval: 400,
+      defaultPageLength: 20
+    });
+  }
+}
+```
+
+```html
+<mat-form-field>
+  <input type="text" matInput [matAutocomplete]="auto"
+    (keyup)="_adapter.changed($event.target.value)">
+</mat-form-field>
+<mat-autocomplete #auto="matAutocomplete">
+  <mat-option *ngFor="let res of this._adapter.dataItems" [value]="res.id">{{res.title}}</mat-option>
+</mat-autocomplete>
+```
+
+
+## Build
 
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
-
-### Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-### Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-
-### Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
 
 
 ## Contributing

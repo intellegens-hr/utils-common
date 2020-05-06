@@ -4,7 +4,7 @@
 // Import dependencies
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { HttpService, HttpServiceError } from '../Http';
+import { HttpService, HttpServiceError, HttpRequestPromise } from '../Http';
 
 // Import data-models
 import { ApiSearchRequestModel, ApiSearchResponseModel } from '../../../data';
@@ -19,7 +19,7 @@ export class ApiEndpoint {
    * Holds endpoint name (relative path)
    */
   private _endpoint: string;
-  
+
   /**
    * Holds (optional) EnTT class to cast response as
    */
@@ -42,15 +42,11 @@ export class ApiEndpoint {
    * @returns All items the endpoint contains
    * @throws Errors returned by the API
    */
-  public async list () {
-    try {
-
-      // Send request
-      const data = await this._http.get(this._endpoint);
-      // Cast and return data
-      return (this._entt ? EnTT.cast(data, { into: [this._entt] }) : data);
-
-    } catch (err) { throw err; }
+  public list () {
+    return this._action(
+      this._http.get(this._endpoint),
+      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+    );
   }
 
   /**
@@ -59,30 +55,22 @@ export class ApiEndpoint {
    * @returns Search results returned by the endpoint
    * @throws Errors returned by the API
    */
-  public async search (req: ApiSearchRequestModel) {
-    try {
-
-      // Get API response
-      const res = await this._http.request<ApiSearchResponseModel>('POST', `${this._endpoint}/search`, { body: req });
-
-      // Process API response
-      if (res.success) {
-
-        // Process and cast successful response
-        const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt] }) : res.data),
-              metadata = res.metadata;
-        // Return data
-        return { data, metadata };
-
-      } else {
-
-        // Throw errors
-        throw new HttpServiceError(res.errors);
-
+  public search (req: ApiSearchRequestModel) {
+    return this._action(
+      this._http._request<ApiSearchResponseModel>('POST', `${this._endpoint}/search`, { body: req }),
+      (res) => {
+        if (res.success) {
+          // Process and cast successful response
+          const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt] }) : res.data),
+                metadata = res.metadata;
+          // Return data
+          return { data, metadata };
+        } else {
+          // Throw errors
+          throw new HttpServiceError(res.errors);
+        }
       }
-
-    } catch (err) { throw err; }
-
+    );
   }
 
   /**
@@ -91,15 +79,11 @@ export class ApiEndpoint {
    * @returns Single endpoint item
    * @throws Errors returned by the API
    */
-  public async get (id: any) {
-    try {
-
-      // Send request
-      const data = await this._http.get(`${this._endpoint}/${id}`);
-      // Cast and return data
-      return (this._entt ? EnTT.cast(data, { into: this._entt }) : data);
-
-    } catch (err) { throw err; }
+  public get (id: any) {
+    return this._action(
+      this._http.get(`${this._endpoint}/${id}`),
+      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+    );
   }
 
   /**
@@ -108,15 +92,11 @@ export class ApiEndpoint {
    * @returns Newly created item
    * @throws Errors returned by the API
    */
-  public async create (item: any) {
-    try {
-
-      // Send request
-      const data = await this._http.post(this._endpoint, item);
-      // Cast and return data
-      return (this._entt ? EnTT.cast(data, { into: this._entt }) : data);
-
-    } catch (err) { throw err; }
+  public create (item: any) {
+    return this._action(
+      this._http.post(this._endpoint, item),
+      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+    );
   }
 
   /**
@@ -126,15 +106,11 @@ export class ApiEndpoint {
    * @returns Updated item
    * @throws Errors returned by the API
    */
-  public async update (id: any, item: any) {
-    try {
-
-      // Send request
-      const data = await this._http.post(`${this._endpoint}/${id}`, item);
-      // Cast and return data
-      return (this._entt ? EnTT.cast(data, { into: this._entt }) : data);
-
-    } catch (err) { throw err; }
+  public update (id: any, item: any) {
+    return this._action(
+      this._http.post(`${this._endpoint}/${id}`, item),
+      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+    );
   }
 
   /**
@@ -142,13 +118,39 @@ export class ApiEndpoint {
    * @param id Id of the endpoint item
    * @throws Errors returned by the API
    */
-  public async delete (id: any) {
-    try {
+  public delete (id: any) {
+    return this._action(
+      this._http.delete(`${this._endpoint}/${id}`),
+      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+    );
+  }
 
-      // Send request
-      await this._http.delete(`${this._endpoint}/${id}`);
-
-    } catch (err) { throw err; }
+  /**
+   * Executes an HTTP request action, wrapping it in an HTTP request promise and casts results once received as EnTT
+   * @param httpReqPromise Function that should execute an HTTP action and return a HTTP request promise
+   * @param processDataCallback Function called on received data, allowed to pre-process it before being resolved
+   * @returns HTTP request promise of response casts as EnTT
+   */
+  private _action <ApiResponseModelType> (
+    httpReqPromise: HttpRequestPromise<ApiResponseModelType>,
+    processDataCallback?: (data: ApiResponseModelType) => any
+  ) {
+    // Place for internal HTTP request promise to be used by .cancel() call
+    let req: HttpRequestPromise<ApiResponseModelType>;
+    // Create and return HTTP request instance
+    return new HttpRequestPromise<ApiResponseModelType>(
+      async (resolve, reject) => {
+        try {
+          // Execute requestor function to get a HTTP request promise
+          const data = await (req = httpReqPromise);
+          // Process result if required and resolve
+          resolve(processDataCallback ? processDataCallback(data) : data);
+        } catch (err) {
+          reject(err);
+        }
+      },
+      () => { req.cancel(); }
+    );
   }
 
 }

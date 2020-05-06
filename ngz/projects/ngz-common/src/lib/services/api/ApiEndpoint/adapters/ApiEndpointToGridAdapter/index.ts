@@ -2,17 +2,42 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
+import { Subject, interval } from 'rxjs';
+import { debounce } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
 import { ApiEndpointFactory, ApiEndpoint } from '../../';
+import { HttpRequestPromise } from '../../../Http'
 
 // Import data models
 import { ApiSearchRequestModel, ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../../../../data';
 
 /**
+ * Holds ApiEndpointToGridAdapter configuration
+ */
+class ApiEndpointToGridAdapterConfiguration {
+
+  /**
+   * If all data should be loaded initially and all further processing done locally
+   */
+  public preload = true;
+
+  /**
+   * Debouncing interval to be used when handling <ngz-grid /> component's change events
+   */
+  public debounceInterval = 0;
+
+  /**
+   * Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
+   */
+  public defaultPageLength = 20;
+
+}
+
+/**
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component (internal implementation)
  */
-class ApiEndpointToGridAdapterInternal {
+export class ApiEndpointToGridAdapterInternal {
 
   /**
    * Injected ApiEndpoint service instance
@@ -20,19 +45,24 @@ class ApiEndpointToGridAdapterInternal {
   protected _endpoint: ApiEndpoint;
 
   /**
-   * If all data should be loaded initially and all further processing done locally
+   * Adapter configuration
    */
-  protected _preload = true;
-
-  /**
-   * Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
-   */
-  protected _pageLength = 20;
+  protected _config = new ApiEndpointToGridAdapterConfiguration();
 
   /**
    * Holds search request parameters
    */
   protected _req = new ApiSearchRequestModel();
+
+  /**
+   * Holds lats HTTP search request promise to be sent
+   */
+  protected _searchReqPromise: HttpRequestPromise<any>;
+
+  /**
+   * Observable subject triggered by change event, used to debounce change event handling
+   */
+  protected _changeDebouncedSubject: Subject<any>
 
   /**
    * Holds promise of items found by the last search
@@ -44,17 +74,28 @@ class ApiEndpointToGridAdapterInternal {
    */
   protected _dataLength = 0;
 
+  constructor () {
+    // Set up debounced change event handling
+    this._changeDebouncedSubject = new Subject<any>();
+    this._changeDebouncedSubject
+      .pipe(debounce(() => interval(this._config.debounceInterval)))
+      .subscribe((observer) => {
+        this._processChanged(observer);
+      });
+  }
+
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param options (Optional) Here for purposes of extending behavior
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT)) {
+  protected _bind (endpoint: string, entt?: (new() => EnTT), options?: any) {
     // Bind to endpoint
     this._endpoint.bind(endpoint, entt);
     // Reset request
     this._req = new ApiSearchRequestModel();
-    this._req.limit = this._pageLength;
+    this._req.limit = this._config.defaultPageLength;
     // Search (after timeout to allow additional configuration)
     setTimeout(() => { this._search(); });
   }
@@ -66,11 +107,16 @@ class ApiEndpointToGridAdapterInternal {
     this._dataSource = new Promise(async (resolve, reject) => {
       try {
 
+        // Cancel last request, if in flight
+        if (this._searchReqPromise) {
+          this._searchReqPromise.cancel();
+        }
+
         // Check if running locally
-        if (!this._preload) {
+        if (!this._config.preload) {
 
           // Run search
-          const res = await this._endpoint.search(this._req);
+          const res = await (this._searchReqPromise = this._endpoint.search(this._req));
           // Set metadata
           this._dataLength = res.metadata.totalRecordCount;
           // Resolve data
@@ -79,7 +125,7 @@ class ApiEndpointToGridAdapterInternal {
         } else {
 
           // Load all data from endpoint
-          const data = await this._endpoint.list();
+          const data = await (this._searchReqPromise = this._endpoint.list());
           // Set metadata
           this._dataLength = undefined;
           // Resolve data
@@ -92,12 +138,20 @@ class ApiEndpointToGridAdapterInternal {
   }
 
   /**
-   * Grid input adapter: handles grid component's change event, updates and reruns the search
+   * Grid input adapter: queues up change handling of change event
    * @param e Grid change event descriptor
    */
   protected _changed (e: any) {
+    this._changeDebouncedSubject.next(e);
+  }
+
+  /**
+   * Grid input adapter: handles grid component's change event, updates and reruns the search
+   * @param e Grid change event descriptor
+   */
+  protected _processChanged (e: any) {
     // Check if running locally
-    if (!this._preload) {
+    if (!this._config.preload) {
       // Cancel local ordering, pagination and filtering
       e.preventDefault();
       // Update search request
@@ -138,17 +192,43 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
   }
 
   /**
+   * Configures adapter behavior
+   * @param preload If all data should be loaded initially and all further processing done locally
+   * @param debounceInterval Debouncing interval to be used when handling <ngz-grid /> component's change events
+   * @param defaultPageLength Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
+   */
+  public configure ({
+    preload           = undefined as boolean,
+    debounceInterval  = undefined as number,
+    defaultPageLength = undefined as number
+  } = {}) {
+    if (preload !== undefined) {
+      this._config.preload = preload;
+    }
+    if (debounceInterval !== undefined) {
+      this._config.debounceInterval = debounceInterval;
+    }
+    if (preload !== undefined) {
+      this._config.defaultPageLength = defaultPageLength;
+    }
+  }
+
+  // TODO: Deprecated, drop with next minor version
+  /**
+   * [DEPRECATED, use .configure() instead]
    * Gets/Sets value controlling if all data will be preloaded in advance and all later processing will be handled locally,
    * or if only visible data will be loaded at any time and all data processing wil lbe deferred to the api endpoint
    */
-  public set preload (value) { this._preload = value; }
-  public get preload () { return this._preload; }
+  public set preload (value) { this._config.preload = value; }
+  public get preload () { return this._config.preload; }
 
+  // TODO: Deprecated, drop with next minor version
   /**
+   * [DEPRECATED, use .configure() instead]
    * Gets/Sets Default page length, used when not otherwise specified by the adapted <ngz-grid /> component
    */
-  public set pageLength (value) { this._pageLength = value; }
-  public get pageLength () { return this._pageLength; }
+  public set pageLength (value) { this._config.defaultPageLength = value; }
+  public get pageLength () { return this._config.defaultPageLength; }
 
 
   /**
