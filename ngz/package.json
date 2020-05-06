@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "intellegens-hr",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@angular/animations": "~9.1.4",
     "@angular/common": "~9.1.4",
