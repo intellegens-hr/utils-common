@@ -1,9 +1,7 @@
-﻿using System;
-
-namespace Intellegens.Commons.Services
+﻿namespace Intellegens.Commons.Services
 {
-    public interface IDtoBase
+    public interface IDtoBase<TKey>
     {
-        Guid Id { get; set; }
+        TKey Id { get; set; }
     }
 }

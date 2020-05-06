@@ -1,6 +1,6 @@
 {
-  "name": "ngz-common",
-  "version": "0.0.0",
+  "name": "@intellegens/ngz-common",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -9,7 +9,14 @@
     "lint": "ng lint",
     "e2e": "ng e2e"
   },
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/intellegens-hr/utils-common.git"
+  },
+  "keywords": [],
+  "author": "intellegens-hr",
+  "license": "MIT",
+  "private": false,
   "dependencies": {
     "@angular/animations": "~9.1.4",
     "@angular/common": "~9.1.4",

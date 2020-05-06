@@ -4,11 +4,13 @@
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
-    "declaration": false,
+    "declaration": true,
     "downlevelIteration": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "module": "esnext",
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "importHelpers": true,
     "target": "es2015",
     "lib": [
@@ -17,8 +19,7 @@
     ],
     "paths": {
       "ngz-common": [
-        "dist/ngz-common/ngz-common",
-        "dist/ngz-common"
+        "./dist/ngz-common"
       ]
     }
   },

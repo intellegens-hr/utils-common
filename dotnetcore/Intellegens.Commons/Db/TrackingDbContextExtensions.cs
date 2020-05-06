@@ -1,45 +1,66 @@
-﻿using Intellegens.Commons.Db.BaseEntities;
-using Intellegens.Commons.Db.Contracts;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace Intellegens.Commons.Db
 {
     public static class TrackingDbContextExtensions
     {
-        /// <summary>
-        /// In context's change tracker, goes through all entities and sets tracking data (user/date created/modified)
-        /// </summary>
-        /// <param name="dbContext"></param>
-        /// <param name="userData"></param>
-        public static void SetEntityTrackingData(this DbContext dbContext, IUserData userData)
+        private static readonly Dictionary<string, List<Type>> typesWithPropertyCache = new Dictionary<string, List<Type>>();
+
+        public static List<Type> GetDbContextEntitiesWithProperty<TContext>(this TContext dbContext, string propertyName)
+            where TContext : DbContext
         {
-            var entriesToCheck = dbContext.ChangeTracker
-                .Entries()
-                .Where(x => x.State == EntityState.Added || x.State == EntityState.Modified)
-                .Where(x => x.Entity is BaseEntityAbstract)
-                .Select(x => new
-                {
-                    x.State,
-                    Entity = x.Entity as BaseEntityAbstract
-                });
-
-            foreach (var entry in entriesToCheck)
+            var dbContextType = dbContext.GetType();
+            string dictionaryKey = $"{dbContextType.Name}_{propertyName}";
+            
+            if (!typesWithPropertyCache.ContainsKey(dictionaryKey))
             {
-                if (entry.State == EntityState.Added)
-                {
-                    entry.Entity.TimeCreated = DateTime.UtcNow;
-                    entry.Entity.UserCreatedId = userData.GetUserId();
-                }
+                var entityProps = dbContext
+                    .GetType()
+                    .GetProperties()
+                    .Where(x => x.PropertyType.IsGenericType && x.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
+                    .Select(x => x.PropertyType.GenericTypeArguments[0])
+                    .Where(x => x.GetProperties().Select(x => x.Name).Contains(propertyName))
+                    .ToList();
 
-                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
-                {
-                    entry.Entity.TimeUpdated = DateTime.UtcNow;
-                    entry.Entity.UserUpdatedId = userData.GetUserId();
-                }
+                typesWithPropertyCache[dictionaryKey] = entityProps;
+            }
+
+            return typesWithPropertyCache[dictionaryKey];
+        }
+
+        public enum ComparisonTypes
+        {
+            EQUAL, NOTEQUAL
+        }
+
+        public static void SetGlobalQueryFilter<TContext>(this TContext dbContext, ModelBuilder modelBuilder, string baseEntityPropertyName, object ExpectedValue, ComparisonTypes comparisonType = ComparisonTypes.EQUAL)
+            where TContext : DbContext
+        {
+            var contextEntitiesFiltered = dbContext.GetDbContextEntitiesWithProperty(baseEntityPropertyName);
+
+            foreach (var type in contextEntitiesFiltered)
+            {
+                var entityTypeBuilder = modelBuilder.Entity(type);
+
+                var entityParameter = Expression.Parameter(type, "entity");
+                var exprLeft = Expression.Property(entityParameter, baseEntityPropertyName);
+                var exprRigt = Expression.Constant(ExpectedValue);
+
+                BinaryExpression body = null;
+
+                if (comparisonType == ComparisonTypes.EQUAL)
+                    body = Expression.Equal(exprLeft, exprRigt);
+                else if (comparisonType == ComparisonTypes.NOTEQUAL)
+                    body = Expression.NotEqual(exprLeft, exprRigt);
+
+                var delegateType = typeof(Func<,>).MakeGenericType(type, typeof(bool));
+                var queryFilterLambda = Expression.Lambda(delegateType, body, entityParameter);
+
+                entityTypeBuilder.HasQueryFilter(queryFilterLambda);
             }
         }
     }

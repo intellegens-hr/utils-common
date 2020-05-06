@@ -10,13 +10,21 @@ namespace Intellegens.Commons.Db.BaseEntities
         DELETED = 2
     }
 
-    public abstract class BaseEntityAbstract
+    public interface ITrackingEntity<TKey>
+    {
+        public TKey UserCreatedId { get; set; }
+        public TKey UserUpdatedId { get; set; }
+        public DateTime TimeCreated { get; set; }
+        public DateTime TimeUpdated { get; set; }
+    }
+
+    public abstract class BaseEntityAbstract<TKey> : ITrackingEntity<TKey>
     {
         [Key]
-        public Guid Id { get; set; }
+        public virtual TKey Id { get; set; }
 
-        public virtual Guid UserCreatedId { get; set; }
-        public virtual Guid UserUpdatedId { get; set; }
+        public virtual TKey UserCreatedId { get; set; }
+        public virtual TKey UserUpdatedId { get; set; }
         public DateTime TimeCreated { get; set; }
         public DateTime TimeUpdated { get; set; }
 
@@ -24,16 +32,16 @@ namespace Intellegens.Commons.Db.BaseEntities
         public StateEnum State { get; set; } = StateEnum.ACTIVE;
     }
 
-    public abstract class BaseEntityAbstract<UserEntity> : BaseEntityAbstract
-        where UserEntity : class
+    public abstract class BaseEntityAbstract<TKey, TUserEntity> : BaseEntityAbstract<TKey>
+        where TUserEntity : class
     {
         [ForeignKey(nameof(UserCreated))]
-        public override Guid UserCreatedId { get; set; }
+        public override TKey UserCreatedId { get; set; }
 
         [ForeignKey(nameof(UserUpdated))]
-        public override Guid UserUpdatedId { get; set; }
+        public override TKey UserUpdatedId { get; set; }
 
-        public UserEntity UserCreated { get; set; }
-        public UserEntity UserUpdated { get; set; }
+        public TUserEntity UserCreated { get; set; }
+        public TUserEntity UserUpdated { get; set; }
     }
 }

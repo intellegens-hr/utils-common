@@ -2,8 +2,8 @@
 
 namespace Intellegens.Commons.Db.Contracts
 {
-    public interface IUserData
+    public interface IUserData<TKey>
     {
-        Guid GetUserId();
+        TKey GetUserId();
     }
 }

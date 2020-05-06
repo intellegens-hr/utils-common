@@ -14,7 +14,6 @@ export class ApiSearchRequestOrderModel extends EnTT {
   /**
    * Name of the ordering property
    */
-  @Serializable({ alias: 'fieldName' })
   public key = undefined as string;
   /**
    * Ordering direction
@@ -32,7 +31,7 @@ export class ApiSearchRequestFilterModel extends EnTT {
    */
   static get Type () {
     return {
-      Default: 0
+      Default: 1
     };
   }
 
@@ -41,7 +40,6 @@ export class ApiSearchRequestFilterModel extends EnTT {
   /**
    * Name of the filtering property
    */
-  @Serializable({ alias: 'fieldName' })
   public key   = undefined as string;
   /**
    * Type of filtering comparison being used
@@ -78,11 +76,11 @@ export class ApiSearchRequestModel extends ApiRequestModel {
   /**
    * Array of filters to search by
    */
-  @Serializable({ alias: 'filter', cast: [ApiSearchRequestFilterModel] })
+  @Serializable({ cast: [ApiSearchRequestFilterModel] })
   public filters = [];
   /**
    * Array of ordering rules to order the searched for results by
    */
-  @Serializable({ alias: 'order', cast: [ApiSearchRequestOrderModel] })
+  @Serializable({ cast: [ApiSearchRequestOrderModel] })
   public ordering = [];
 }
