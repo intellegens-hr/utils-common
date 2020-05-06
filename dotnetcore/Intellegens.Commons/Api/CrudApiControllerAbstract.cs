@@ -31,5 +31,8 @@ namespace Intellegens.Commons.Api
 
         [HttpPost("search")]
         public abstract Task<ApiGridResult<T>> Search([FromBody]SearchRequest request);
+
+        [HttpPost("indexof/{id}")]
+        public abstract Task<ApiResult<int>> IndexOf([FromRoute]TKey id, [FromBody]SearchRequest request);
     }
 }

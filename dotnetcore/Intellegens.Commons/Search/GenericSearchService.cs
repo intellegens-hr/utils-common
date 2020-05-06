@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Linq.Dynamic.Core.CustomTypeProviders;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Search
@@ -38,14 +39,29 @@ namespace Intellegens.Commons.Search
             typeof(decimal), typeof(float)
         };
 
-        // TODO: When we stabilize search, this needs to be cleaned up and tests added
-        private IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
+        protected IQueryable<T> OrderQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             var order = searchRequest
                 .Ordering
                 .Where(x => !string.IsNullOrEmpty(x.Key))
                 .ToList();
 
+            // build order by
+            if (order.Any())
+            {
+                var firstOrdering = GetOrderingString(order[0]);
+                sourceData = sourceData.OrderBy(firstOrdering);
+
+                for (var i = 1; i < order.Count; i++)
+                    sourceData = (sourceData as IOrderedQueryable<T>).ThenBy(GetOrderingString(order[i]));
+            }
+
+            return sourceData;
+        }
+
+        // TODO: When we stabilize search, this needs to be cleaned up and tests added
+        protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
+        {
             var filters = searchRequest.Filters.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
 
             // build where
@@ -124,16 +140,7 @@ namespace Intellegens.Commons.Search
                 }
             });
 
-            // build order by
-            if (order.Any())
-            {
-                var firstOrdering = GetOrderingString(order[0]);
-                sourceData = sourceData.OrderBy(firstOrdering);
-
-                for (var i = 1; i < order.Count; i++)
-                    sourceData = (sourceData as IOrderedQueryable<T>).ThenBy(GetOrderingString(order[i]));
-            }
-
+            sourceData = OrderQuery(sourceData, searchRequest);
             return sourceData;
         }
 
@@ -160,6 +167,33 @@ namespace Intellegens.Commons.Search
 
         public Task<(int count, List<T> data)> SearchAndCount(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => SearchAndCount(sourceData.AsQueryable(), searchRequest);
+
+        private object GetPropertyValue(PropertyInfo[] properties, string propertyName, T entity)
+        => properties.Where(p => p.Name.ToLower() == propertyName.ToLower()).First().GetValue(entity);
+
+        public async Task<int> IndexOf(string keyColumn, IQueryable<T> sourceData, T entity, SearchRequest searchRequest)
+        {
+            var query = BuildSearchQuery(sourceData, searchRequest);
+
+            var properties = typeof(T).GetProperties();
+
+            var entityKeyValue = GetPropertyValue(properties, keyColumn, entity);
+
+            if (searchRequest.Ordering.Any())
+            {
+                var order = searchRequest.Ordering.First();
+                var queryOperator = order.Ascending ? "<" : ">";
+
+                var entityOrderColValue = GetPropertyValue(properties, order.Key, entity);
+                query = query.Where($"({order.Key} {queryOperator} @0) || ({order.Key} == @0 && {keyColumn} < @1)", entityOrderColValue, entityKeyValue);
+            }
+            else
+            {
+                query = query.Where($" {keyColumn} < @0", entityKeyValue);
+            }
+
+            return await query.CountAsync();
+        }
     }
 
     public class DynamicLinqProvider : IDynamicLinkCustomTypeProvider
