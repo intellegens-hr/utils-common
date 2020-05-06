@@ -98,6 +98,8 @@ class ApiEndpointToGridAdapterInternal {
   protected _changed (e: any) {
     // Check if running locally
     if (!this._preload) {
+      // Cancel local ordering, pagination and filtering
+      e.preventDefault();
       // Update search request
       this._req.offset = e.state.pageIndex * e.state.pageLength;
       this._req.limit  = e.state.pageLength;
