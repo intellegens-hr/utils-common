@@ -5,8 +5,9 @@
 import { NgModule } from '@angular/core';
 
 // Import and (re)export services
-import { ServicesModule } from './services';
 export * from './services';
+export { ServicesModule } from './services'; // Required IVY hinting
+import { ServicesModule } from './services';
 
 const modules = [
   ServicesModule
