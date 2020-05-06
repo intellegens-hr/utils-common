@@ -1,5 +1,4 @@
-﻿using Intellegens.Commons.Db.BaseEntities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,27 +8,28 @@ namespace Intellegens.Commons.Db
 {
     public static class TrackingDbContextExtensions
     {
-        private static readonly Dictionary<Type, List<Type>> typesCache = new Dictionary<Type, List<Type>>();
+        private static readonly Dictionary<string, List<Type>> typesWithPropertyCache = new Dictionary<string, List<Type>>();
 
-        public static List<Type> GetDbContextBaseEntityTypesCached<TContext, TKey>(this TContext dbContext)
-            where TContext : TrackingDbContextAbstract<TKey>
+        public static List<Type> GetDbContextEntitiesWithProperty<TContext>(this TContext dbContext, string propertyName)
+            where TContext : DbContext
         {
             var dbContextType = dbContext.GetType();
-
-            if (!typesCache.ContainsKey(dbContextType))
+            string dictionaryKey = $"{dbContextType.Name}_{propertyName}";
+            
+            if (!typesWithPropertyCache.ContainsKey(dictionaryKey))
             {
-                var props = dbContext
+                var entityProps = dbContext
                     .GetType()
                     .GetProperties()
                     .Where(x => x.PropertyType.IsGenericType && x.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
                     .Select(x => x.PropertyType.GenericTypeArguments[0])
-                    .Where(x => x.BaseType == null || x.BaseType == typeof(BaseEntityAbstract<TKey>))
+                    .Where(x => x.GetProperties().Select(x => x.Name).Contains(propertyName))
                     .ToList();
 
-                typesCache[dbContextType] = props;
+                typesWithPropertyCache[dictionaryKey] = entityProps;
             }
 
-            return typesCache[dbContextType];
+            return typesWithPropertyCache[dictionaryKey];
         }
 
         public enum ComparisonTypes
@@ -37,10 +37,12 @@ namespace Intellegens.Commons.Db
             EQUAL, NOTEQUAL
         }
 
-        public static void SetGlobalQueryFilter<TContext, TKey>(this TContext dbContext, ModelBuilder modelBuilder, string baseEntityPropertyName, object ExpectedValue, ComparisonTypes comparisonType = ComparisonTypes.EQUAL)
-            where TContext : TrackingDbContextAbstract<TKey>
+        public static void SetGlobalQueryFilter<TContext>(this TContext dbContext, ModelBuilder modelBuilder, string baseEntityPropertyName, object ExpectedValue, ComparisonTypes comparisonType = ComparisonTypes.EQUAL)
+            where TContext : DbContext
         {
-            foreach (var type in dbContext.GetDbContextBaseEntityTypesCached<TContext, TKey>())
+            var contextEntitiesFiltered = dbContext.GetDbContextEntitiesWithProperty(baseEntityPropertyName);
+
+            foreach (var type in contextEntitiesFiltered)
             {
                 var entityTypeBuilder = modelBuilder.Entity(type);
 
