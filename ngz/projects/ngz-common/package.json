@@ -1,6 +1,7 @@
 {
   "name": "@intellegens/ngz-common",
-  "version": "1.0.1",
+  "version": "1.0.2",
+  "description": "Angular library containing reusable code shared between multiple projects",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/intellegens-hr/utils-common.git"
