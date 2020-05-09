@@ -76,5 +76,4 @@ fi
 echo '';
 echo '> Publishing to NPM ...';
 cd ../ngz/dist/ngz-common
-#npm publish --access public
-echo "PUBLISH NOW: publish, publish, publish ...";
+npm publish --access public

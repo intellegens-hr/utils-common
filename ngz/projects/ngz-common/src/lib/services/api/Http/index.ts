@@ -235,7 +235,6 @@ export class HttpService {
         // Implement .cancel() method
         () => {
           subscription.unsubscribe();
-          console.log('Unsubscribing from previous request!');
         }
       );
 

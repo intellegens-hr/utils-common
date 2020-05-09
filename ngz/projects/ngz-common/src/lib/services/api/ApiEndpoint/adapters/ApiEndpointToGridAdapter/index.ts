@@ -37,7 +37,7 @@ class ApiEndpointToGridAdapterConfiguration {
 /**
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component (internal implementation)
  */
-class ApiEndpointToGridAdapterInternal {
+export class ApiEndpointToGridAdapterInternal {
 
   /**
    * Injected ApiEndpoint service instance
@@ -59,7 +59,9 @@ class ApiEndpointToGridAdapterInternal {
    */
   protected _searchReqPromise: HttpRequestPromise<any>;
 
-  /** */
+  /**
+   * Observable subject triggered by change event, used to debounce change event handling
+   */
   protected _changeDebouncedSubject: Subject<any>
 
   /**
@@ -86,8 +88,9 @@ class ApiEndpointToGridAdapterInternal {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param options (Optional) Here for purposes of extending behavior
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT)) {
+  protected _bind (endpoint: string, entt?: (new() => EnTT), options?: any) {
     // Bind to endpoint
     this._endpoint.bind(endpoint, entt);
     // Reset request

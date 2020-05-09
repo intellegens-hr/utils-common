@@ -9,10 +9,14 @@ const modules = [
 ];
 
 // Import and (re)export providers
-import { HttpService, ApiEndpointFactory, ApiEndpointToGridAdapterFactory } from './api';
 export * from './api';
+import {
+  HttpService,
+  ApiEndpointFactory, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
+} from './api';
 const providers = [
-  HttpService, ApiEndpointFactory, ApiEndpointToGridAdapterFactory
+  HttpService,
+  ApiEndpointFactory, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
 ];
 
 /**
