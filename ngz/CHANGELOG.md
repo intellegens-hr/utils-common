@@ -1,3 +1,10 @@
+#### v1.0.3
+
+- Making sure publishing to NPM captures correct README.md
+- Fixed issues with `ApiEndpoint` service's `.get()` and `.list()` methods
+- Fixes to the `ApiEndpointToAutocompleteAdapter` adapter
+- `ApiEndpointToAutocompleteAdapter` adapter now takes explicit column key to order by and ordering direction as configuration
+
 #### v1.0.2
 
 - Added CHANGELOG.md

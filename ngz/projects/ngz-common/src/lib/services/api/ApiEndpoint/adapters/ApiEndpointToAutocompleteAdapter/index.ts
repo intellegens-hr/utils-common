@@ -4,20 +4,28 @@
 // Import dependencies
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { ApiEndpointFactory, ApiEndpoint } from '../../';
+import { ApiEndpointFactory } from '../../';
 
-// Import ApiEndpointToGridAdapter
-import { ApiEndpointToGridAdapterInternal } from '../ApiEndpointToGridAdapter';
+// Import base
+import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 /**
  * API Endpoint to Autocomplete component adapter (internal implementation)
  */
-export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridAdapterInternal {
+export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
-   * Holds name of property to search by
+   * Holds name of property to filter by
    */
-  protected _key = null;
+  protected _filterBy = null;
+  /**
+   * Holds name of property to order by
+   */
+  protected _orderBy = null;
+  /**
+   * Holds If ordering should be in ascending order
+   */
+  protected _orderAsc = null;
 
   /**
    * Holds items found by the last search
@@ -45,11 +53,25 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridA
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param key Name of property to be search by
+   * @param filterBy Name of property to be filter by
+   * @param orderBy Name of property to be order by
+   * @param orderAsc If ordering should be in ascending order
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT), { key = undefined as string } = {}) {
-    this._key = key;
+  protected _bind (
+    endpoint: string,
+    entt?: (new() => EnTT),
+    {
+      filterBy = undefined as string,
+      orderBy = undefined as string,
+      orderAsc = true
+    } = {}
+  ) {
+    // Bind to endpoint
     super._bind(endpoint, entt);
+    // Store key
+    this._filterBy = filterBy;
+    this._orderBy = orderBy;
+    this._orderAsc = orderAsc;
   }
 
   /**
@@ -57,12 +79,10 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridA
    * @param value Autocomplete change event value
    */
   protected _processChanged (value: any) {
-    // Check if running locally
-    if (!this._config.preload) {
-      this._req.filters = [
-        { key: this._key, value }
-      ];
-    }
+    // Update request filters
+    this._req.filters = [{ key: this._filterBy, value }];
+    // Update request ordering
+    this._req.ordering = [{ key: this._orderBy, ascending: this._orderAsc }];
     // (Re)Run search
     this._search();
   }
@@ -84,22 +104,18 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
 
   /**
    * Configures adapter behavior
-   * @param preload If all data should be loaded initially and all further processing done locally
    * @param debounceInterval Debouncing interval to be used when handling <input /> component's change events
    * @param defaultPageLength Maximum number of displayed items
    */
   public configure ({
-    preload           = undefined as boolean,
     debounceInterval  = undefined as number,
     defaultPageLength = undefined as number
   } = {}) {
-    if (preload !== undefined) {
-      this._config.preload = preload;
-    }
+    this._config.preload = false;
     if (debounceInterval !== undefined) {
       this._config.debounceInterval = debounceInterval;
     }
-    if (preload !== undefined) {
+    if (defaultPageLength !== undefined) {
       this._config.defaultPageLength = defaultPageLength;
     }
   }
@@ -119,14 +135,22 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
-   * @param key Name of property to search by
+   * @param filterBy Name of property to search by
+   * @param orderBy Name of property to search by
+   * @param orderAsc Name of property to search by
    * @param entt (Optional) EnTT class to cast response as
    */
-  public bind (endpoint: string, key: string, entt?: (new() => EnTT)) {
+  public bind (
+    endpoint: string,
+    filterBy: string,
+    orderBy: string,
+    orderAsc = true,
+    entt?: (new() => EnTT)
+  ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { key });
+    this._bind(endpoint, entt, { filterBy, orderBy, orderAsc });
   }
 
   /**
@@ -137,13 +161,20 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
   }
 
   /**
+   * Autocomplete input adapter: handles autocomplete component's opened event, updates and reruns the search
+   * @param e Event?
+   */
+  public opened (e) {
+    console.log(e);
+  }
+
+  /**
    * Autocomplete input adapter: handles autocomplete component's change event, updates and reruns the search
    * @param value Updated search value
    */
   public changed (value: any) {
     this._changed(value);
   }
-
 
 }
 
@@ -158,12 +189,14 @@ export class ApiEndpointToAutocompleteAdapterFactory {
   /**
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
-   * @param keys Endpoint search key
+   * @param filterBy Name of property to search by
+   * @param orderBy (Optional) Name of property to search by
+   * @param orderAsc (Optional) Name of property to search by
    * @param entt (Optional) EnTT class to cast response as
    */
-  public create (endpoint: string, key: string, entt?: (new() => EnTT)) {
+  public create (endpoint: string, filterBy: string, orderBy?: string, orderAsc?: boolean, entt?: (new() => EnTT)) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);
-    adapter.bind(endpoint, key, entt);
+    adapter.bind(endpoint, filterBy, (orderBy || filterBy), (orderAsc !== undefined ? orderAsc : true), entt);
     return adapter;
   }
 }

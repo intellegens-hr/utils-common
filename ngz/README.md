@@ -163,7 +163,7 @@ class MyClass {
     (keyup)="_adapter.changed($event.target.value)">
 </mat-form-field>
 <mat-autocomplete #auto="matAutocomplete">
-  <mat-option *ngFor="let res of this._adapter.dataItems" [value]="res.id">{{res.title}}</mat-option>
+  <mat-option *ngFor="let res of this._adapter.dataItems" [value]="res.title">{{res.title}}</mat-option>
 </mat-autocomplete>
 ```
 

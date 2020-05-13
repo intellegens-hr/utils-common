@@ -214,9 +214,8 @@ export class HttpService {
             'Content-Type': 'application/json;charset=UTF-8',
             ...headers
           }),
-          params: new HttpParams({
-            fromObject: (query instanceof EnTT ? query.serialize() : query) as {[param: string]: string | readonly string[]}
-          }),
+          params: (Object.entries(query instanceof EnTT ? query.serialize() : query) as unknown as string[])
+                    .reduce((params, [key, value]) => params.set(key, value), new HttpParams()),
           ...options
         }
       );

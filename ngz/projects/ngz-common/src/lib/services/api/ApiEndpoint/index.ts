@@ -45,7 +45,7 @@ export class ApiEndpoint {
   public list () {
     return this._action(
       this._http.get(this._endpoint),
-      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+      (data: any[]) => (this._entt ? EnTT.cast(data, { into: [this._entt] }) : data)
     );
   }
 
@@ -82,7 +82,13 @@ export class ApiEndpoint {
   public get (id: any) {
     return this._action(
       this._http.get(`${this._endpoint}/${id}`),
-      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+      (data: any[]) => {
+        if (data && data.length) {
+          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
+        } else {
+          return null;
+        }
+      }
     );
   }
 
@@ -95,7 +101,13 @@ export class ApiEndpoint {
   public create (item: any) {
     return this._action(
       this._http.post(this._endpoint, item),
-      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+      (data: any[]) => {
+        if (data && data.length) {
+          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
+        } else {
+          return null;
+        }
+      }
     );
   }
 
@@ -109,7 +121,13 @@ export class ApiEndpoint {
   public update (id: any, item: any) {
     return this._action(
       this._http.post(`${this._endpoint}/${id}`, item),
-      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+      (data: any[]) => {
+        if (data && data.length) {
+          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
+        } else {
+          return null;
+        }
+      }
     );
   }
 

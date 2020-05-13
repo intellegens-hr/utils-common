@@ -2,6 +2,8 @@
 {
     public interface IDtoBase<TKey>
     {
-        TKey Id { get; set; }
+        public TKey GetIdValue();
+
+        public string GetIdPropertyName();
     }
 }

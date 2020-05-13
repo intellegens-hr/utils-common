@@ -22,6 +22,6 @@ namespace Intellegens.Commons.Services
 
         public Task<(int? count, List<TDto> data)> Search(SearchRequest searchRequest, bool calculateTotalRecordCount = true);
 
-        public Task<int> IndexOf(SearchRequest searchRequest, TKey id);
+        public Task<Result<int>> IndexOf(SearchRequest searchRequest, TKey id);
     }
 }
