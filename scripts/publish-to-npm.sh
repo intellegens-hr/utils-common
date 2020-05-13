@@ -9,6 +9,7 @@ echo '';
 echo '> Building latest library version ...';
 cd ../ngz
 ng build --prod;
+cp -f ../ngz/README.md ../ngz/dist/ngz-common;
 
 # Check if main project package.json and library package.json are have same proeprty values
 echo '';
