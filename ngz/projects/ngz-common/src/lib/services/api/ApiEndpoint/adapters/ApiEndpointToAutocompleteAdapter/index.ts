@@ -4,15 +4,15 @@
 // Import dependencies
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { ApiEndpointFactory, ApiEndpoint } from '../../';
+import { ApiEndpointFactory } from '../../';
 
-// Import ApiEndpointToGridAdapter
-import { ApiEndpointToGridAdapterInternal } from '../ApiEndpointToGridAdapter';
+// Import base
+import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 /**
  * API Endpoint to Autocomplete component adapter (internal implementation)
  */
-export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridAdapterInternal {
+export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
    * Holds name of property to search by
@@ -48,8 +48,10 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridA
    * @param key Name of property to be search by
    */
   protected _bind (endpoint: string, entt?: (new() => EnTT), { key = undefined as string } = {}) {
-    this._key = key;
+    // Bind to endpoint
     super._bind(endpoint, entt);
+    // Store key
+    this._key = key;
   }
 
   /**
@@ -57,12 +59,10 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointToGridA
    * @param value Autocomplete change event value
    */
   protected _processChanged (value: any) {
-    // Check if running locally
-    if (!this._config.preload) {
-      this._req.filters = [
-        { key: this._key, value }
-      ];
-    }
+    // Update request filters
+    this._req.filters = [{ key: this._key, value }];
+    // Update request ordering
+    this._req.ordering = [{ key: this._key, ascending: true }];
     // (Re)Run search
     this._search();
   }
@@ -84,22 +84,18 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
 
   /**
    * Configures adapter behavior
-   * @param preload If all data should be loaded initially and all further processing done locally
    * @param debounceInterval Debouncing interval to be used when handling <input /> component's change events
    * @param defaultPageLength Maximum number of displayed items
    */
   public configure ({
-    preload           = undefined as boolean,
     debounceInterval  = undefined as number,
     defaultPageLength = undefined as number
   } = {}) {
-    if (preload !== undefined) {
-      this._config.preload = preload;
-    }
+    this._config.preload = false;
     if (debounceInterval !== undefined) {
       this._config.debounceInterval = debounceInterval;
     }
-    if (preload !== undefined) {
+    if (defaultPageLength !== undefined) {
       this._config.defaultPageLength = defaultPageLength;
     }
   }
@@ -137,13 +133,20 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
   }
 
   /**
+   * Autocomplete input adapter: handles autocomplete component's opened event, updates and reruns the search
+   * @param e Event?
+   */
+  public opened (e) {
+    console.log(e);
+  }
+
+  /**
    * Autocomplete input adapter: handles autocomplete component's change event, updates and reruns the search
    * @param value Updated search value
    */
   public changed (value: any) {
     this._changed(value);
   }
-
 
 }
 

@@ -1,6 +1,8 @@
 #### v1.0.3
 
 - Making sure publishing to NPM captures correct README.md
+- Fixed issues with `ApiEndpoint` service's `.get()` and `.list()` methods
+- Fixes to the `ApiEndpointToAutocompleteAdapter` adapter
 
 #### v1.0.2
 
