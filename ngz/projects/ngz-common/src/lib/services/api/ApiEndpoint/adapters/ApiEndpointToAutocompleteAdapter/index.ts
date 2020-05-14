@@ -15,9 +15,17 @@ import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
-   * Holds name of property to search by
+   * Holds name of property to filter by
    */
-  protected _key = null;
+  protected _filterBy = null;
+  /**
+   * Holds name of property to order by
+   */
+  protected _orderBy = null;
+  /**
+   * Holds If ordering should be in ascending order
+   */
+  protected _orderAsc = null;
 
   /**
    * Holds items found by the last search
@@ -45,13 +53,25 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param key Name of property to be search by
+   * @param filterBy Name of property to be filter by
+   * @param orderBy Name of property to be order by
+   * @param orderAsc If ordering should be in ascending order
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT), { key = undefined as string } = {}) {
+  protected _bind (
+    endpoint: string,
+    entt?: (new() => EnTT),
+    {
+      filterBy = undefined as string,
+      orderBy = undefined as string,
+      orderAsc = true
+    } = {}
+  ) {
     // Bind to endpoint
     super._bind(endpoint, entt);
     // Store key
-    this._key = key;
+    this._filterBy = filterBy;
+    this._orderBy = orderBy;
+    this._orderAsc = orderAsc;
   }
 
   /**
@@ -60,9 +80,9 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    */
   protected _processChanged (value: any) {
     // Update request filters
-    this._req.filters = [{ key: this._key, value }];
+    this._req.filters = [{ key: this._filterBy, value }];
     // Update request ordering
-    this._req.ordering = [{ key: this._key, ascending: true }];
+    this._req.ordering = [{ key: this._orderBy, ascending: this._orderAsc }];
     // (Re)Run search
     this._search();
   }
@@ -115,14 +135,22 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
-   * @param key Name of property to search by
+   * @param filterBy Name of property to search by
+   * @param orderBy Name of property to search by
+   * @param orderAsc Name of property to search by
    * @param entt (Optional) EnTT class to cast response as
    */
-  public bind (endpoint: string, key: string, entt?: (new() => EnTT)) {
+  public bind (
+    endpoint: string,
+    filterBy: string,
+    orderBy: string,
+    orderAsc = true,
+    entt?: (new() => EnTT)
+  ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { key });
+    this._bind(endpoint, entt, { filterBy, orderBy, orderAsc });
   }
 
   /**
@@ -161,12 +189,14 @@ export class ApiEndpointToAutocompleteAdapterFactory {
   /**
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
-   * @param keys Endpoint search key
+   * @param filterBy Name of property to search by
+   * @param orderBy (Optional) Name of property to search by
+   * @param orderAsc (Optional) Name of property to search by
    * @param entt (Optional) EnTT class to cast response as
    */
-  public create (endpoint: string, key: string, entt?: (new() => EnTT)) {
+  public create (endpoint: string, filterBy: string, orderBy?: string, orderAsc?: boolean, entt?: (new() => EnTT)) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);
-    adapter.bind(endpoint, key, entt);
+    adapter.bind(endpoint, filterBy, (orderBy || filterBy), (orderAsc !== undefined ? orderAsc : true), entt);
     return adapter;
   }
 }
