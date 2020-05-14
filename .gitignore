@@ -7,3 +7,6 @@
 /dotnetcore/Intellegens.Commons/bin/Debug/netcoreapp3.1
 /dotnetcore/Intellegens.Commons/obj
 /dotnetcore/.vs
+
+# Ignore local files
+*.local.*

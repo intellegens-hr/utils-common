@@ -120,7 +120,7 @@ export class ApiEndpoint {
    */
   public update (id: any, item: any) {
     return this._action(
-      this._http.post(`${this._endpoint}/${id}`, item),
+      this._http.put(`${this._endpoint}/${id}`, item),
       (data: any[]) => {
         if (data && data.length) {
           return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
@@ -157,6 +157,7 @@ export class ApiEndpoint {
     let req: HttpRequestPromise<ApiResponseModelType>;
     // Create and return HTTP request instance
     return new HttpRequestPromise<ApiResponseModelType>(
+      // Handle HTTP request promise
       async (resolve, reject) => {
         try {
           // Execute requestor function to get a HTTP request promise
@@ -167,7 +168,10 @@ export class ApiEndpoint {
           reject(err);
         }
       },
-      () => { req.cancel(); }
+      // Implement .cancel() method
+      () => { req.cancel(); },
+      // Copy request info
+      httpReqPromise.info
     );
   }
 

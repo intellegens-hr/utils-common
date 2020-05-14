@@ -4,9 +4,8 @@
 // Import dependencies
 import { Subject, interval } from 'rxjs';
 import { debounce } from 'rxjs/operators';
-import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { ApiEndpointFactory, ApiEndpoint } from '../../';
+import {  ApiEndpoint } from '../../';
 import { HttpRequestPromise } from '../../../Http'
 
 // Import data models
@@ -43,6 +42,16 @@ export class ApiEndpointBaseAdapter {
    * Injected ApiEndpoint service instance
    */
   protected _endpoint: ApiEndpoint;
+
+  /**
+   * Holds targeted EnTT class
+   */
+  protected _entt = undefined as new() => EnTT
+
+  /**
+   * Holds function converting EnTT instance to a representative string
+   */
+  protected _enttToString = undefined as (entt: EnTT) => string
 
   /**
    * Adapter configuration
@@ -88,9 +97,12 @@ export class ApiEndpointBaseAdapter {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param options (Optional) Here for purposes of extending behavior
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT), options?: any) {
+  protected _bind (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
+    // Store properties
+    this._entt = entt;
+    this._enttToString = enttToString;
     // Bind to endpoint
     this._endpoint.bind(endpoint, entt);
     // Reset request
@@ -150,6 +162,14 @@ export class ApiEndpointBaseAdapter {
   protected _processChanged (e: any) {
     // (Re)Run search
     this._search();
+  }
+
+  /**
+   * Converts EnTT instance to a representative string
+   * @param entt EnTT instance to convert to string
+   */
+  protected _toString (entt: EnTT) {
+    return (this._enttToString ? this._enttToString(entt) : entt);
   }
 
 }

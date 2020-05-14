@@ -27,11 +27,21 @@ export class ApiSearchRequestOrderModel extends EnTT {
 export class ApiSearchRequestFilterModel extends EnTT {
 
   /**
+   * Enumerates allowed ApiSearchRequestFilterModel.not values
+   */
+  // tslint:disable-next-line: variable-name
+  public static ComparisonType = {
+    Direct:  0,
+    Negated: 1
+  };
+
+  /**
    * Enumerates allowed ApiSearchRequestFilterModel.type values
    */
   // tslint:disable-next-line: variable-name
   public static Type = {
-    Default: 1
+    ExactMatch: 0,
+    StartsWith: 1
   };
 
   constructor () { super(); super.entt(); }
@@ -41,13 +51,17 @@ export class ApiSearchRequestFilterModel extends EnTT {
    */
   public key   = undefined as string;
   /**
+   * Direct or negated filtering comparison
+   */
+  public comparisonType   = ApiSearchRequestFilterModel.ComparisonType.Direct
+  /**
    * Type of filtering comparison being used
    */
-  public type  = ApiSearchRequestFilterModel.Type.Default;
+  public type  = ApiSearchRequestFilterModel.Type.StartsWith;
   /**
    * Value to filter by
    */
-  public value = undefined as string;
+  public values = [] as string[];
 }
 
 /**
@@ -72,10 +86,15 @@ export class ApiSearchRequestModel extends ApiRequestModel {
    */
   public limit  = undefined as number;
   /**
-   * Array of filters to search by
+   * Array of filters to filter by
    */
   @Serializable({ cast: [ApiSearchRequestFilterModel] })
   public filters = [];
+  /**
+   * Array of search criteria to search by
+   */
+  @Serializable({ cast: [ApiSearchRequestFilterModel] })
+  public search = [];
   /**
    * Array of ordering rules to order the searched for results by
    */

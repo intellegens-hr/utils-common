@@ -124,7 +124,9 @@ class ResourceModel extends EnTT { /* ... */}
 
 class MyClass {
   constructor (public _adapterFactory: ApiEndpointToGridAdapterFactory) {
-    this._adapter = this._adapterFactory.create('/resources', ResourceModel);
+    this._adapter = this._adapterFactory.create('/resources', ResourceModel, {
+      enttToString: res => res.title
+    });
     this._adapter.configure({
       preload: false,
       debounceInterval: 400,
@@ -141,30 +143,52 @@ class MyClass {
 ### ApiEndpointToAutocompleteAdapter
 
 ```ts
+import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
 import { ApiEndpointToAutocompleteAdapterFactory } from '@intellegens/ngz-common';
 
 class ResourceModel extends EnTT { /* ... */}
 
 class MyClass {
+  public _selected: ResourceModel;
+
   constructor (public _adapterFactory: ApiEndpointToAutocompleteAdapterFactory) {
-    this._adapter = this._adapterFactory.create('/resources', 'title', ResourceModel);
+    this._adapter = this._adapterFactory.create(
+      '/resources',
+      ResourceModel, {
+        searchBy: ['title', 'code'],
+        orderBy: ['title', '!code']
+        enttToString: res => `${res.title} (${res.code})`
+      }
+    );
     this._adapter.configure({
       preload: false,
       debounceInterval: 400,
       defaultPageLength: 20
     });
   }
+
+  public _onSelected (e: MatAutocompleteSelectedEvent) {
+    this._selected = event.option.value;
+  }
 }
 ```
 
 ```html
-<mat-form-field>
-  <input type="text" matInput [matAutocomplete]="auto"
-    (keyup)="_adapter.changed($event.target.value)">
+<mat-form-field class="w-1of3">
+  <mat-label>Autocomplete</mat-label>
+  <input type="text" matInput [matAutocomplete]="autocomplete"
+    [value]="_adapter.toString(_selected)"
+    (input)="_adapter.changed($event.target.value)" />
+  <mat-autocomplete #autocomplete="matAutocomplete"
+    (opened)="_adapter.opened($event)"
+    (optionSelected)="_onSelected($event)"
+    [displayWith]="_adapter.toString">
+    <mat-option *ngFor="let option of _adapter.dataItems"
+      [value]="option" [matTooltip]="_adapter.toString(option)" [matTooltipPosition]="'right'">
+      {{ _adapter.toString(option) }}
+    </mat-option>
+  </mat-autocomplete>
 </mat-form-field>
-<mat-autocomplete #auto="matAutocomplete">
-  <mat-option *ngFor="let res of this._adapter.dataItems" [value]="res.title">{{res.title}}</mat-option>
-</mat-autocomplete>
 ```
 
 

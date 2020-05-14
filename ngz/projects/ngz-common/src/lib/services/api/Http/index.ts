@@ -161,23 +161,23 @@ export class HttpService {
       options = {} as object
     } = {}
   ): HttpRequestPromise<any> {
-    // Place for internal HTTP request instance to be used by .cancel() call
-    let req;
-    // Create and return HTTP request instance
+    // Send HTTP request
+    const req = this._request<ApiResponseModelType>(method, path, { body, query, headers, options });
+    // Create and return HTTP request promise instance
     return new HttpRequestPromise(
       // Handle HTTP request promise
       async (resolve, reject) => {
         try {
-          // Send HTTP request
-          const res = await (req = this._request<ApiResponseModelType>(method, path, { body, query, headers, options }));
           // Process HTTP response
-          resolve(this._processApiResponse(res));
+          resolve(this._processApiResponse(await req));
         } catch (err) {
           reject(err);
         }
       },
       // Implement .cancel() method
-      () => { req.cancel(); }
+      () => { req.cancel(); },
+      // Copy request info
+      req.info
     );
   }
 
@@ -204,18 +204,27 @@ export class HttpService {
   ): HttpRequestPromise<any> {
     try {
 
+      // Ready HTTP request
+      const reqParams = {
+        method,
+        url:     `${this._url}/${path.length && path[0] === '/' ? path.substr(1) : path}`,
+        body:    (body ? (body instanceof EnTT ? body.serialize() : body) : undefined),
+        headers: {
+          'Content-Type': 'application/json;charset=UTF-8',
+          ...headers
+        },
+        query:   (query instanceof EnTT ? query.serialize() : query)
+      };
+
       // Execute HTTP request
       const req = this._http.request(
-        method,
-        `${this._url}/${path.length && path[0] === '/' ? path.substr(1) : path}`,
+        reqParams.method,
+        reqParams.url,
         {
-          body: (body ? (body instanceof EnTT ? body.serialize() : body) : undefined),
-          headers: new HttpHeaders({
-            'Content-Type': 'application/json;charset=UTF-8',
-            ...headers
-          }),
-          params: (Object.entries(query instanceof EnTT ? query.serialize() : query) as unknown as string[])
-                    .reduce((params, [key, value]) => params.set(key, value), new HttpParams()),
+          body:    reqParams.body,
+          headers: new HttpHeaders(reqParams.headers),
+          params:  (Object.entries(reqParams.query) as unknown as string[])
+            .reduce((params, [key, value]) => params.set(key, value), new HttpParams()),
           ...options
         }
       );
@@ -228,13 +237,15 @@ export class HttpService {
           // Subscribe and handle HTTP request promise
           subscription = req.subscribe(
             (data: ApiResponseModelType) => resolve(data),
-            (err: Error) => reject(err)
+            (err) => reject(err)
           );
         },
         // Implement .cancel() method
         () => {
           subscription.unsubscribe();
-        }
+        },
+        // Request info
+        new HttpRequestInfo(reqParams)
       );
 
     } catch (err) { throw err; }
@@ -279,18 +290,31 @@ export class HttpRequestPromise<T> extends Promise<T> {
   protected _cancel: () => void;
 
   /**
+   * Holds description of request being handled by the promise
+   */
+  protected _info: HttpRequestInfo;
+  /**
+   * Description of request being handled by the promise
+   */
+  public get info () { return this._info; }
+
+  /**
    * Constructor
    * @param executor Promise executor function
    * @param cancel Implementation of the export .cancel() method
    */
   constructor (
     executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void,
-    cancel?: () => void
+    cancel?: () => void,
+    info?: HttpRequestInfo
   ) {
     super(executor);
 
     // Store cancel function if provided
     this._cancel = cancel;
+
+    // Store request info if provided
+    this._info = info;
 
   }
 
@@ -299,6 +323,49 @@ export class HttpRequestPromise<T> extends Promise<T> {
    */
   public cancel () {
     if (this._cancel) { this._cancel(); }
+  }
+
+}
+
+/**
+ * HTTP Request information
+ */
+export class HttpRequestInfo {
+
+  /**
+   * Holds request method
+   */
+  public method: string;
+  /**
+   * Holds request URL
+   */
+  public url: string;
+  /**
+   * Holds request query
+   */
+  public query: object;
+  /**
+   * Holds request headers
+   */
+  public headers: object;
+  /**
+   * Holds request body
+   */
+  public body: object;
+
+  constructor ({
+    method  = undefined as string,
+    url     = undefined as string,
+    query   = {} as object,
+    headers = {} as object,
+    body    = {} as object
+  } = {}) {
+    // Set properties
+    this.method     = method;
+    this.url     = url;
+    this.query   = query;
+    this.headers = headers;
+    this.body    = body;
   }
 
 }
