@@ -1,6 +1,7 @@
 #### v1.0.5
 
-- ...
+- `HttpRequestPromise<T>` returned from `HttpService` now contains a new `.info` property describing the request being handled
+- `HttpRequestPromise<T>` returned from `ApiEndpoint` now contains a new `.info` property describing the request being handled
 
 #### v1.0.3
 

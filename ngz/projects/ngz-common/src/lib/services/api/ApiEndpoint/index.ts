@@ -157,6 +157,7 @@ export class ApiEndpoint {
     let req: HttpRequestPromise<ApiResponseModelType>;
     // Create and return HTTP request instance
     return new HttpRequestPromise<ApiResponseModelType>(
+      // Handle HTTP request promise
       async (resolve, reject) => {
         try {
           // Execute requestor function to get a HTTP request promise
@@ -167,7 +168,10 @@ export class ApiEndpoint {
           reject(err);
         }
       },
-      () => { req.cancel(); }
+      // Implement .cancel() method
+      () => { req.cancel(); },
+      // Copy request info
+      httpReqPromise.info
     );
   }
 
