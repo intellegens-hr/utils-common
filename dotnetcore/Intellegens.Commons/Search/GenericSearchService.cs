@@ -156,6 +156,12 @@ namespace Intellegens.Commons.Search
             return (expression, arguments.ToArray());
         }
 
+        /// <summary>
+        /// Combine multiple expressions and parameter arrays into single
+        /// </summary>
+        /// <param name="queryParts">List containing expression/arguments pairs</param>
+        /// <param name="separator">Separator to use for queries (AND/OR)</param>
+        /// <returns>Single tuple containing expression and all arguments</returns>
         private (string expression, object[] arguments) CombineQueryPartsAndArguments(List<(string expression, object[] arguments)> queryParts, string separator)
         {
             var parameters = new List<object>();
@@ -170,6 +176,12 @@ namespace Intellegens.Commons.Search
             return (query, parameters.ToArray());
         }
 
+        /// <summary>
+        /// Build search query from SearchRequest object
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             // get all defined filters

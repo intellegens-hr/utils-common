@@ -8,7 +8,7 @@ namespace Intellegens.Commons.Search
 
     public enum CaseSensitivity { CASE_SENSITIVE, CASE_INSENSITIVE }
 
-    public class SearchRequest<T>
+    public class SearchRequest
     {
         public FilterTypes Type { get; set; } = FilterTypes.AND;
         public CaseSensitivity CaseSensitivity { get; set; } = CaseSensitivity.CASE_SENSITIVE;
@@ -19,9 +19,7 @@ namespace Intellegens.Commons.Search
         public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
     }
 
-    public class SearchRequest : SearchRequest<string> { }
-
-    public class SearchFilter<T>
+    public class SearchFilter
     {
         public static SearchFilter PartialMatch(string key, string value)
             => new SearchFilter { Key = key, Value = value, Type = FilterMatchTypes.PARTIAL_MATCH };
@@ -38,13 +36,11 @@ namespace Intellegens.Commons.Search
         public string Value { get; set; }
 
         // Search only
-        public List<T> ValuesIn { get; set; } = new List<T>();
+        public List<string> ValuesIn { get; set; } = new List<string>();
 
         // Values to exclude
-        public List<T> ValuesNotIn { get; set; } = new List<T>();
+        public List<string> ValuesNotIn { get; set; } = new List<string>();
     }
-
-    public class SearchFilter : SearchFilter<string> { }
 
     public class SearchOrder
     {
