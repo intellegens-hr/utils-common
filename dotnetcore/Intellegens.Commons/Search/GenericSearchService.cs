@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Intellegens.Commons.Types;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace Intellegens.Commons.Search
         // If fieldname contains anything but underscore, letters and numbers - it's invalid
         private void ValidateDynamicLinqFieldName(string key)
         {
-            var isNameValid = key.All(c => Char.IsLetterOrDigit(c) || c.Equals('_'));
+            var isNameValid = key.All(c => Char.IsLetterOrDigit(c) || c.Equals('_') || c.Equals('.'));
             if (!isNameValid)
                 throw new Exception("Possible SQL Injection!");
         }
@@ -38,6 +39,44 @@ namespace Intellegens.Commons.Search
         {
             typeof(decimal), typeof(float)
         };
+
+        private static (bool isInvalid, object value) ParseFilterValue(Type filterValueType, string filterValue)
+        {
+            object filterValueParsed = filterValue;
+            bool filterInvalid = false;
+
+            // try parse filter value. Parsed filter value is used for exact search
+            if (filterValueType == typeof(System.Guid))
+            {
+                filterInvalid = !Guid.TryParse(filterValue, out Guid _);
+            }
+            else if (filterValueType == typeof(DateTime))
+            {
+                filterInvalid = !DateTime.TryParse(filterValue, out DateTime parsedDate);
+                if (!filterInvalid)
+                    filterValueParsed = parsedDate;
+            }
+            else if (filterValueType == typeof(bool))
+            {
+                filterInvalid = !bool.TryParse(filterValue, out bool parsedPool);
+                if (!filterInvalid)
+                    filterValueParsed = parsedPool;
+            }
+            else if (IntTypes.Contains(filterValueType))
+            {
+                filterInvalid = !Int32.TryParse(filterValue, out int parsedInt);
+                if (!filterInvalid)
+                    filterValueParsed = parsedInt;
+            }
+            else if (DecimalTypes.Contains(filterValueType))
+            {
+                filterInvalid = !Decimal.TryParse(filterValue, out decimal parsedDecimal);
+                if (!filterInvalid)
+                    filterValueParsed = parsedDecimal;
+            }
+
+            return (filterInvalid, filterValueParsed);
+        }
 
         protected IQueryable<T> OrderQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
@@ -65,12 +104,13 @@ namespace Intellegens.Commons.Search
             var filters = searchRequest.Filters.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
 
             // build where
-            filters.ForEach(filter =>
+            var queryParams = new List<(string query, object? queryParam)>();
+            for (int i = 0; i < filters.Count; i++)
             {
+                var filter = filters[i];
                 ValidateDynamicLinqFieldName(filter.Key);
 
-                // TODO: Cache
-                var prop = typeof(T).GetProperties().Where(x => x.Name.Equals(filter.Key, StringComparison.OrdinalIgnoreCase)).First();
+                var prop = TypeUtils.GetProperty<T>(filter.Key, StringComparison.OrdinalIgnoreCase);
                 var filterPropType = prop.PropertyType;
                 var filterPropTypeIsNullable = false;
 
@@ -82,49 +122,19 @@ namespace Intellegens.Commons.Search
                     filterPropType = nullableType;
                 }
 
-                object filterValue = filter.Value;
-                bool filterInvalid = false;
-
                 // try parse filter value. Parsed filter value is used for exact search
-                if (filterPropType == typeof(System.Guid))
-                {
-                    filterInvalid = !Guid.TryParse(filter.Value, out Guid _);
-                }
-                else if (filterPropType == typeof(DateTime))
-                {
-                    filterInvalid = !DateTime.TryParse(filter.Value, out DateTime parsedDate);
-                    if (!filterInvalid)
-                        filterValue = parsedDate;
-                }
-                else if (filterPropType == typeof(bool))
-                {
-                    filterInvalid = !bool.TryParse(filter.Value, out bool parsedPool);
-                    if (!filterInvalid)
-                        filterValue = parsedPool;
-                }
-                else if (IntTypes.Contains(filterPropType))
-                {
-                    filterInvalid = !Int32.TryParse(filter.Value, out int parsedInt);
-                    if (!filterInvalid)
-                        filterValue = parsedInt;
-                }
-                else if (DecimalTypes.Contains(filterPropType))
-                {
-                    filterInvalid = !Decimal.TryParse(filter.Value, out decimal parsedDecimal);
-                    if (!filterInvalid)
-                        filterValue = parsedDecimal;
-                }
+                (bool filterInvalid, object filterValue) = ParseFilterValue(filterPropType, filter.Value);
 
                 switch (filter.Type)
                 {
-                    case FilterTypes.EXACT_MATCH:
+                    case FilterMatchTypes.EXACT_MATCH:
                         if (filterInvalid)
                             throw new Exception("Invalid filter value!");
 
                         sourceData = sourceData.Where($"{prop.Name} == @0", filterValue);
                         break;
 
-                    case FilterTypes.PARTIAL_MATCH:
+                    case FilterMatchTypes.PARTIAL_MATCH:
                         if (filterPropType == typeof(bool))
                         {
                             throw new Exception("Bool value can't be partially matched!");
@@ -138,7 +148,7 @@ namespace Intellegens.Commons.Search
                     default:
                         throw new NotImplementedException();
                 }
-            });
+            };
 
             sourceData = OrderQuery(sourceData, searchRequest);
             return sourceData;
