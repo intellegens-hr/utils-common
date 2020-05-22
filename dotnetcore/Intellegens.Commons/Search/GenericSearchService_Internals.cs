@@ -20,7 +20,7 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// Used to name SQL parameters
+        /// Used to name SQL parameters: @0, @1, ...
         /// </summary>
         private int parameterCounter = 0;
 
@@ -154,9 +154,17 @@ namespace Intellegens.Commons.Search
                         throw new Exception("Bool value can't be partially matched!");
                     }
 
-                    // https://stackoverflow.com/a/56718249
-                    // NpgsqlDbFunctionsExtensions.ILike
-                    expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filter.Value}%\")))";
+                    // in case of string search, postgres uses ILIKE operator to do case insensitive search
+                    if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == DatabaseProviders.POSTGRES)
+                    {
+                        expression = $"(({filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, {filteredProperty.Name}, \"%{filter.Value}%\")))";
+                    }
+                    else
+                    {
+                        // https://stackoverflow.com/a/56718249
+                        expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filter.Value}%\")))";
+                    }
+
                     break;
 
                 default:

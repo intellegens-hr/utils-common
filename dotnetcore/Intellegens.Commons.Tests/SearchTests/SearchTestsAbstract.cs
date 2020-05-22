@@ -12,15 +12,19 @@ namespace Intellegens.Commons.Tests.SearchTests
 {
     public abstract partial class SearchTestsAbstract
     {
-        public SearchTestsAbstract(SearchDbContext dbContext)
+        public SearchTestsAbstract(SearchDbContext dbContext, DatabaseProviders databaseProvider)
         {
             this.dbContext = dbContext;
             this.dbContext.Database.Migrate();
+
+            var config = new GenericSearchConfig { DatabaseProvider = databaseProvider };
+            searchService = new GenericSearchService<SearchTestEntity>(config);
+            searchServiceChildren = new GenericSearchService<SearchTestChildEntity>(config);
         }
 
         private readonly SearchDbContext dbContext;
-        protected readonly GenericSearchService<SearchTestEntity> searchService = new GenericSearchService<SearchTestEntity>();
-        protected readonly GenericSearchService<SearchTestChildEntity> searchServiceChildren = new GenericSearchService<SearchTestChildEntity>();
+        protected readonly GenericSearchService<SearchTestEntity> searchService;
+        protected readonly GenericSearchService<SearchTestChildEntity> searchServiceChildren;
 
         private static SearchTestChildEntity GetTestChildEntity(string testingSessionId, int parentId)
         {
@@ -41,7 +45,7 @@ namespace Intellegens.Commons.Tests.SearchTests
 
             entity.Children = new List<SearchTestChildEntity>();
 
-            for (int i = 0;i<5;i++)
+            for (int i = 0; i < 5; i++)
                 entity.Children.Add(GetTestChildEntity(entity.TestingSessionId, entity.Id));
 
             return entity;
@@ -101,7 +105,5 @@ namespace Intellegens.Commons.Tests.SearchTests
             Assert.Equal(5, count);
             Assert.Equal(5, data.Count);
         }
-
-        
     }
 }

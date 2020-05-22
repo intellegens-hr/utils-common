@@ -6,12 +6,9 @@ namespace Intellegens.Commons.Search
 
     public enum FilterMatchTypes { EXACT_MATCH, PARTIAL_MATCH, WILDCARD, REGEX }
 
-    public enum CaseSensitivity { CASE_SENSITIVE, CASE_INSENSITIVE }
-
     public class SearchRequest
     {
         public FilterTypes Type { get; set; } = FilterTypes.AND;
-        public CaseSensitivity CaseSensitivity { get; set; } = CaseSensitivity.CASE_SENSITIVE;
         public int Offset { get; set; } = 0; // Starting record
         public int Limit { get; set; } = 10; // Number of records to return
 

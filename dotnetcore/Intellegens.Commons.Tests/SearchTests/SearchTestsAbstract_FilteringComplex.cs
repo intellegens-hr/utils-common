@@ -70,5 +70,25 @@ namespace Intellegens.Commons.Tests.SearchTests
             var data = await searchService.Search(query, searchRequest);
             Assert.True(data.Count == 2);
         }
+
+        [Fact]
+        public async Task Partial_text_filtering_should_be_case_insensitive_if_configured()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Filters = new List<SearchFilter>
+                {
+                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToUpper()),
+                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToLower())
+                }
+            };
+
+            var data = await searchService.Search(query, searchRequest);
+            Assert.Contains(entity.Id, data.Select(x => x.Id));
+        }
     }
 }

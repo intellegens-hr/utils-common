@@ -10,6 +10,18 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class
     {
+        private readonly IGenericSearchConfig genericSearchConfig;
+
+        public GenericSearchService()
+        {
+            genericSearchConfig = new GenericSearchConfig { DatabaseProvider = DatabaseProviders.SQLITE };
+        }
+
+        public GenericSearchService(IGenericSearchConfig genericSearchConfig)
+        {
+            this.genericSearchConfig = genericSearchConfig;
+        }
+
         public Task<List<T>> Search(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => Search(sourceData.AsQueryable(), searchRequest);
 

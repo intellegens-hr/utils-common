@@ -19,7 +19,7 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql(ConnectionString, x => x.MigrationsHistoryTable("__SearchDbContextMigrationsHistory"));
+            optionsBuilder.UseNpgsql(ConnectionString, x => x.MigrationsHistoryTable("__EFSearchDbContextMigrationsHistory"));
 
             base.OnConfiguring(optionsBuilder);
         }
@@ -34,7 +34,7 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         {
             optionsBuilder.ConfigureWarnings(x => x.Ignore(RelationalEventId.AmbientTransactionWarning));
 
-            optionsBuilder.UseSqlite($@"Data Source={ConnectionString};", x => x.MigrationsHistoryTable("__SearchDbContextMigrationsHistory"));
+            optionsBuilder.UseSqlite($@"Data Source={ConnectionString};", x => x.MigrationsHistoryTable("__EFSearchDbContextMigrationsHistory"));
         }
     }
 }
