@@ -71,5 +71,35 @@ namespace Intellegens.Commons.Tests.SearchTests
             var data = await searchServiceChildren.Search(childQueries, searchRequest);
             Assert.True(data.Count == 5);
         }
+
+        [Fact]
+        public async Task Null_params_should_be_handled_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+            var child = entity.Children.First();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Filters = new List<SearchFilter>
+                {
+                    new SearchFilter
+                    {
+                        Key = "Parent.TestingSessionId",
+                        Value = null,
+                        ValuesIn = null,
+                        ValuesNotIn = null
+                    }
+                }
+            };
+
+            var childQueries = dbContext.SearchTestChildEntities
+                .Include(x => x.Parent)
+                .Where(x => x.TestingSessionId == entity.TestingSessionId);
+
+            var data = await searchServiceChildren.Search(childQueries, searchRequest);
+            Assert.True(data.Count == 5);
+        }
     }
 }

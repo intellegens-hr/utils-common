@@ -38,10 +38,10 @@ namespace Intellegens.Commons.Search
         public string Value { get; set; }
 
         // Search only
-        public List<T> ValuesIn { get; set; }
+        public List<T> ValuesIn { get; set; } = new List<T>();
 
         // Values to exclude
-        public List<T> ValuesNotIn { get; set; }
+        public List<T> ValuesNotIn { get; set; } = new List<T>();
     }
 
     public class SearchFilter : SearchFilter<string> { }

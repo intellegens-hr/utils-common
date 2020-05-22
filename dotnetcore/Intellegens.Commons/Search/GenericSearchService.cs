@@ -42,6 +42,14 @@ namespace Intellegens.Commons.Search
             typeof(decimal), typeof(float)
         };
 
+        /// <summary>
+        /// If needed, casts filter value to property type.
+        /// Doesn't throw exception in case of invalid values since some search methods don't mind it. For example,
+        /// 123 is not valid Guid in exact match, but is in partial match
+        /// </summary>
+        /// <param name="filterValueType">Filtered property type</param>
+        /// <param name="filterValue">Filter value</param>
+        /// <returns>Tuple containing casted filter value and info if conversion was successful</returns>
         private static (bool isInvalid, object value) ParseFilterValue(Type filterValueType, string filterValue)
         {
             object filterValueParsed = filterValue;
@@ -100,6 +108,12 @@ namespace Intellegens.Commons.Search
             return sourceData;
         }
 
+        /// <summary>
+        /// Returns dynamic query expression and parameters for given filter and it's property
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="filteredProperty"></param>
+        /// <returns></returns>
         private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, PropertyInfo filteredProperty)
         {
             var filteredPropertyType = filteredProperty.PropertyType;
@@ -142,11 +156,24 @@ namespace Intellegens.Commons.Search
             return (expression, arguments.ToArray());
         }
 
-        // TODO: When we stabilize search, this needs to be cleaned up and tests added
+        private (string expression, object[] arguments) CombineQueryPartsAndArguments(List<(string expression, object[] arguments)> queryParts, string separator)
+        {
+            var parameters = new List<object>();
+            string query = "";
+
+            if (queryParts.Any())
+            {
+                query = string.Join($" {separator} ", queryParts.Select(x => x.expression));
+                queryParts.Select(x => x.arguments).ToList().ForEach(x => parameters.AddRange(x));
+            }
+
+            return (query, parameters.ToArray());
+        }
+
         protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             // get all defined filters
-            var filters = searchRequest.Filters.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
+            var filters = searchRequest.Filters.ToList();
 
             // for each filter, get WHERE clause part and query parameters (if any)
             var queryParams = new List<(string query, object[] queryParams)>();
@@ -159,21 +186,40 @@ namespace Intellegens.Commons.Search
 
                 // get property for given filter key
                 var prop = TypeUtils.GetProperty<T>(filter.Key, StringComparison.OrdinalIgnoreCase);
+
+                // resolve IN as multiple equal
+                if (filter.ValuesIn?.Any() ?? false)
+                {
+                    var queryInListParams = filter.ValuesIn?
+                        .Select(x => GetFilterExpression(SearchFilter.ExactMatch(filter.Key, x), prop))
+                        .ToList();
+                    var (expression, arguments) = CombineQueryPartsAndArguments(queryInListParams, "||");
+                    queryParams.Add(($"({expression})", arguments));
+                }
+
+                // resolve NOT IN as multiple not equal
+                if (filter.ValuesNotIn?.Any() ?? false)
+                {
+                    var queryNotInListParams = filter.ValuesNotIn?
+                        .Select(x => GetFilterExpression(SearchFilter.ExactMatch(filter.Key, x), prop))
+                        .ToList();
+                    var (expression, arguments) = CombineQueryPartsAndArguments(queryNotInListParams, "&&");
+                    queryParams.Add(($"({expression.Replace("==", "!=")})", arguments));
+                }
+
+                if (string.IsNullOrEmpty(filter.Value))
+                    continue;
+
                 queryParams.Add(GetFilterExpression(filter, prop));
             };
 
             // get all WHERE parts, define separator and join them together
-            var queryParts = queryParams.Select(x => x.query).Where(x => !string.IsNullOrEmpty(x)).ToList();
-            if (queryParts.Any())
+            var separator = searchRequest.Type == FilterTypes.OR ? "||" : "&&";
+
+            if (queryParams.Any())
             {
-                var separator = searchRequest.Type == FilterTypes.OR ? "||" : "&&";
-                var query = string.Join($" {separator} ", queryParts);
-
-                // get all query parameters and add them to parameters list
-                var parameters = new List<object>();
-                queryParams.Select(x => x.queryParams).ToList().ForEach(x => parameters.AddRange(x));
-
-                sourceData = sourceData.Where(parsingConfig, query, parameters.ToArray());
+                var (expression, arguments) = CombineQueryPartsAndArguments(queryParams, separator);
+                sourceData = sourceData.Where(parsingConfig, expression, arguments);
             }
 
             sourceData = OrderQuery(sourceData, searchRequest);
