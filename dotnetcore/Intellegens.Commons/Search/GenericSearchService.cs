@@ -22,6 +22,8 @@ namespace Intellegens.Commons.Search
                 throw new Exception("Possible SQL Injection!");
         }
 
+        private int parameterCounter = 0;
+
         private string GetOrderingString(SearchOrder order)
             => $"{order.Key} {(order.Ascending ? "ascending" : "descending")}";
 
@@ -98,57 +100,81 @@ namespace Intellegens.Commons.Search
             return sourceData;
         }
 
+        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, PropertyInfo filteredProperty)
+        {
+            var filteredPropertyType = filteredProperty.PropertyType;
+
+            var nullableType = Nullable.GetUnderlyingType(filteredPropertyType);
+            if (nullableType != null)
+            {
+                // filterPropTypeIsNullable = true;
+                filteredPropertyType = nullableType;
+            }
+
+            (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, filter.Value);
+            var arguments = new List<object>();
+            string expression;
+
+            switch (filter.Type)
+            {
+                case FilterMatchTypes.EXACT_MATCH:
+                    if (filterHasInvalidValue)
+                        throw new Exception("Invalid filter value!");
+
+                    expression = $"{filteredProperty.Name} == @{parameterCounter++}";
+                    arguments.Add(filterValue);
+                    break;
+
+                case FilterMatchTypes.PARTIAL_MATCH:
+                    if (filteredProperty.PropertyType == typeof(bool))
+                    {
+                        throw new Exception("Bool value can't be partially matched!");
+                    }
+
+                    // https://stackoverflow.com/a/56718249
+                    expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filter.Value}%\")))";
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            return (expression, arguments.ToArray());
+        }
+
         // TODO: When we stabilize search, this needs to be cleaned up and tests added
         protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
+            // get all defined filters
             var filters = searchRequest.Filters.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
 
-            // build where
-            var queryParams = new List<(string query, object? queryParam)>();
+            // for each filter, get WHERE clause part and query parameters (if any)
+            var queryParams = new List<(string query, object[] queryParams)>();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];
+
+                // check if query contains any SQL injection potential
                 ValidateDynamicLinqFieldName(filter.Key);
 
+                // get property for given filter key
                 var prop = TypeUtils.GetProperty<T>(filter.Key, StringComparison.OrdinalIgnoreCase);
-                var filterPropType = prop.PropertyType;
-                var filterPropTypeIsNullable = false;
-
-                // in case prop type is DateTime?, we flag it as nullable and set type to DateTime
-                var nullableType = Nullable.GetUnderlyingType(filterPropType);
-                if (nullableType != null)
-                {
-                    filterPropTypeIsNullable = true;
-                    filterPropType = nullableType;
-                }
-
-                // try parse filter value. Parsed filter value is used for exact search
-                (bool filterInvalid, object filterValue) = ParseFilterValue(filterPropType, filter.Value);
-
-                switch (filter.Type)
-                {
-                    case FilterMatchTypes.EXACT_MATCH:
-                        if (filterInvalid)
-                            throw new Exception("Invalid filter value!");
-
-                        sourceData = sourceData.Where($"{prop.Name} == @0", filterValue);
-                        break;
-
-                    case FilterMatchTypes.PARTIAL_MATCH:
-                        if (filterPropType == typeof(bool))
-                        {
-                            throw new Exception("Bool value can't be partially matched!");
-                        }
-
-                        // https://stackoverflow.com/a/56718249
-                        sourceData = sourceData.Where($"{prop.Name} != null");
-                        sourceData = sourceData.Where(parsingConfig, $"DbFunctionsExtensions.Like(EF.Functions, string(object({prop.Name})), \"%{filter.Value}%\")");
-                        break;
-
-                    default:
-                        throw new NotImplementedException();
-                }
+                queryParams.Add(GetFilterExpression(filter, prop));
             };
+
+            // get all WHERE parts, define separator and join them together
+            var queryParts = queryParams.Select(x => x.query).Where(x => !string.IsNullOrEmpty(x)).ToList();
+            if (queryParts.Any())
+            {
+                var separator = searchRequest.Type == FilterTypes.OR ? "||" : "&&";
+                var query = string.Join($" {separator} ", queryParts);
+
+                // get all query parameters and add them to parameters list
+                var parameters = new List<object>();
+                queryParams.Select(x => x.queryParams).ToList().ForEach(x => parameters.AddRange(x));
+
+                sourceData = sourceData.Where(parsingConfig, query, parameters.ToArray());
+            }
 
             sourceData = OrderQuery(sourceData, searchRequest);
             return sourceData;

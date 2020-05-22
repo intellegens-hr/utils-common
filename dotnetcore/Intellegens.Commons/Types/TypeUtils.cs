@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace Intellegens.Commons.Types
 {
@@ -17,7 +16,7 @@ namespace Intellegens.Commons.Types
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public static List<PropertyInfo> GetProperties<T>()
-            where T: class
+            where T : class
         {
             return GetProperties(typeof(T));
         }
@@ -44,8 +43,8 @@ namespace Intellegens.Commons.Types
         {
             List<string> chain = propertyName.Split('.').ToList();
             PropertyInfo propertyInfo = null;
-            
-            foreach(var prop in chain)
+
+            foreach (var prop in chain)
             {
                 var propertyType = propertyInfo?.DeclaringType ?? typeof(T);
 
