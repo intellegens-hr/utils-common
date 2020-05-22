@@ -1,5 +1,6 @@
 ﻿using Intellegens.Commons.Types;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -146,6 +147,7 @@ namespace Intellegens.Commons.Search
                     }
 
                     // https://stackoverflow.com/a/56718249
+                    // NpgsqlDbFunctionsExtensions.ILike
                     expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filter.Value}%\")))";
                     break;
 
@@ -297,6 +299,7 @@ namespace Intellegens.Commons.Search
             HashSet<Type> types = new HashSet<Type>
             {
                 typeof(EF),
+                typeof(NpgsqlDbFunctionsExtensions),
                 typeof(DbFunctionsExtensions)
             };
             return types;
