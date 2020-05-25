@@ -5,7 +5,7 @@ namespace Intellegens.Commons.Tests.SearchTests
 {
     public class SearchTestsSqlite : SearchTestsAbstract
     {
-        public SearchTestsSqlite() : base(new SearchDbContextSqlite(), DatabaseProviders.SQLITE)
+        public SearchTestsSqlite() : base(new SearchDbContextSqlite(), SearchDatabaseProviders.SQLITE)
         {
         }
     }

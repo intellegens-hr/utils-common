@@ -5,7 +5,7 @@ namespace Intellegens.Commons.Tests.SearchTests
 {
     public class SearchTestsPostgres : SearchTestsAbstract
     {
-        public SearchTestsPostgres() : base(new SearchDbContextPostgres(), DatabaseProviders.POSTGRES)
+        public SearchTestsPostgres() : base(new SearchDbContextPostgres(), SearchDatabaseProviders.POSTGRES)
         {
         }
     }

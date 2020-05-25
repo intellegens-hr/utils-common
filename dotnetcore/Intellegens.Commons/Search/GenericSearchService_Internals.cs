@@ -168,7 +168,7 @@ namespace Intellegens.Commons.Search
                             }
 
                             // in case of string search, postgres uses ILIKE operator to do case insensitive search
-                            if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == DatabaseProviders.POSTGRES)
+                            if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
                             {
                                 expression = $"((it.{filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filteredProperty.Name}, \"%{filterStringValue}%\")))";
                             }

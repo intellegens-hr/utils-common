@@ -14,7 +14,7 @@ namespace Intellegens.Commons.Search
 
         public GenericSearchService()
         {
-            genericSearchConfig = new GenericSearchConfig { DatabaseProvider = DatabaseProviders.SQLITE };
+            genericSearchConfig = new GenericSearchConfig { DatabaseProvider = SearchDatabaseProviders.SQLITE };
         }
 
         public GenericSearchService(IGenericSearchConfig genericSearchConfig)

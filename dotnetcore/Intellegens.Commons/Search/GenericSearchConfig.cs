@@ -1,14 +1,14 @@
 ﻿namespace Intellegens.Commons.Search
 {
-    public enum DatabaseProviders { SQLITE, POSTGRES }
+    public enum SearchDatabaseProviders { SQLITE, POSTGRES }
 
     public interface IGenericSearchConfig
     {
-        DatabaseProviders DatabaseProvider { get; }
+        SearchDatabaseProviders DatabaseProvider { get; }
     }
 
     public class GenericSearchConfig : IGenericSearchConfig
     {
-        public DatabaseProviders DatabaseProvider { get; set; }
+        public SearchDatabaseProviders DatabaseProvider { get; set; }
     }
 }

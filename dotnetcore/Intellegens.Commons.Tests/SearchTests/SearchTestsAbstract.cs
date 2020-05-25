@@ -12,7 +12,7 @@ namespace Intellegens.Commons.Tests.SearchTests
 {
     public abstract partial class SearchTestsAbstract
     {
-        public SearchTestsAbstract(SearchDbContext dbContext, DatabaseProviders databaseProvider)
+        public SearchTestsAbstract(SearchDbContext dbContext, SearchDatabaseProviders databaseProvider)
         {
             this.dbContext = dbContext;
             this.dbContext.Database.Migrate();
