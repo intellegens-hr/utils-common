@@ -58,9 +58,8 @@ namespace Intellegens.Commons.Tests.SearchTests
 
             var searchRequest = new SearchRequest
             {
-                Type = FilterTypes.OR,
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Search = new List<SearchFilter>
                 {
                     SearchFilter.ExactMatch("Id", entities[0].Id.ToString()),
                     SearchFilter.ExactMatch("Id", entities[1].Id.ToString())

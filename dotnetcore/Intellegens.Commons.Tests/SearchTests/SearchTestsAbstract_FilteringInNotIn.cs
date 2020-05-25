@@ -21,11 +21,18 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Filters = new List<SearchFilter>
                 {
                     SearchFilter.ExactMatch(nameof(SearchTestEntity.TestingSessionId), entities[0].TestingSessionId),
+                    // IN values
                     new SearchFilter
                     {
                         Key = nameof(SearchTestEntity.Id),
-                        ValuesIn = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() },
-                        ValuesNotIn = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
+                        Values = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() }
+                    },
+                    // NOT IN values
+                    new SearchFilter
+                    {
+                        Key = nameof(SearchTestEntity.Id),
+                        Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
+                        ComparisonType = ComparisonTypes.NOT_EQUAL
                     }
                 }
             };
@@ -43,14 +50,18 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Type = FilterTypes.OR,
-                Filters = new List<SearchFilter>
+                Search = new List<SearchFilter>
                 {
                     new SearchFilter
                     {
                         Key = nameof(SearchTestEntity.Id),
-                        ValuesIn = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() },
-                        ValuesNotIn = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
+                        Values = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() },
+                    },
+                    new SearchFilter
+                    {
+                        Key = nameof(SearchTestEntity.Id),
+                        Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
+                        ComparisonType = ComparisonTypes.NOT_EQUAL
                     }
                 }
             };
@@ -73,7 +84,8 @@ namespace Intellegens.Commons.Tests.SearchTests
                     new SearchFilter
                     {
                         Key = nameof(SearchTestEntity.Id),
-                        ValuesNotIn = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
+                        Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
+                        ComparisonType = ComparisonTypes.NOT_EQUAL
                     }
                 }
             };
@@ -96,7 +108,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                     new SearchFilter
                     {
                         Key = nameof(SearchTestEntity.Id),
-                        ValuesIn = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
+                        Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
                     }
                 }
             };

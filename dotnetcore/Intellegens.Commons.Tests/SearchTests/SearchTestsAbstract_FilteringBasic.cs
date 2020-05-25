@@ -111,9 +111,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                     new SearchFilter
                     {
                         Key = "Parent.TestingSessionId",
-                        Value = null,
-                        ValuesIn = null,
-                        ValuesNotIn = null
+                        Values = null
                     }
                 }
             };

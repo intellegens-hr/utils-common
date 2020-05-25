@@ -2,41 +2,39 @@
 
 namespace Intellegens.Commons.Search
 {
-    public enum FilterTypes { AND, OR }
+    
 
     public enum FilterMatchTypes { EXACT_MATCH, PARTIAL_MATCH, WILDCARD, REGEX }
 
+    public enum ComparisonTypes { EQUAL, NOT_EQUAL }
+
     public class SearchRequest
     {
-        public FilterTypes Type { get; set; } = FilterTypes.AND;
         public int Offset { get; set; } = 0; // Starting record
         public int Limit { get; set; } = 10; // Number of records to return
 
-        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>();
+        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>(); // AND
+        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); // (OR)
         public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
     }
 
     public class SearchFilter
     {
         public static SearchFilter PartialMatch(string key, string value)
-            => new SearchFilter { Key = key, Value = value, Type = FilterMatchTypes.PARTIAL_MATCH };
+            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.PARTIAL_MATCH };
 
         public static SearchFilter ExactMatch(string key, string value)
-            => new SearchFilter { Key = key, Value = value, Type = FilterMatchTypes.EXACT_MATCH };
+            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.EXACT_MATCH };
 
         public string Key { get; set; }
 
         //For future's sake, will define type of filtering
         public FilterMatchTypes Type { get; set; } = FilterMatchTypes.PARTIAL_MATCH;
 
-        // search value
-        public string Value { get; set; }
+        public ComparisonTypes ComparisonType { get; set; } = ComparisonTypes.EQUAL;
 
-        // Search only
-        public List<string> ValuesIn { get; set; } = new List<string>();
-
-        // Values to exclude
-        public List<string> ValuesNotIn { get; set; } = new List<string>();
+        // search value(s)
+        public List<string> Values { get; set; }
     }
 
     public class SearchOrder

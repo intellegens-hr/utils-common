@@ -10,6 +10,14 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class
     {
+        private enum LogicalOperators { AND, OR }
+
+        private Dictionary<LogicalOperators, string> csharpOperatorsMap = new Dictionary<LogicalOperators, string>
+        {
+            { LogicalOperators.AND, "==" },
+            { LogicalOperators.OR, "||" }
+        };
+
         // Using dynamic query exposes a possibility of sql injection.
         // If fieldname contains anything but underscore, letters and numbers - it's invalid
         private void ValidateDynamicLinqFieldName(string key)
@@ -123,7 +131,7 @@ namespace Intellegens.Commons.Search
         /// <param name="filter"></param>
         /// <param name="filteredProperty"></param>
         /// <returns></returns>
-        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, PropertyInfo filteredProperty)
+        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, PropertyInfo filteredProperty, LogicalOperators logicalOperator)
         {
             var filteredPropertyType = filteredProperty.PropertyType;
 
@@ -134,44 +142,53 @@ namespace Intellegens.Commons.Search
                 filteredPropertyType = nullableType;
             }
 
-            (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, filter.Value);
             var arguments = new List<object>();
-            string expression;
+            var expressions = new List<string>();
 
-            switch (filter.Type)
-            {
-                case FilterMatchTypes.EXACT_MATCH:
-                    if (filterHasInvalidValue)
-                        throw new Exception("Invalid filter value!");
+            if (filter?.Values != null)
+                foreach (string filterStringValue in filter.Values)
+                {
+                    (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, filterStringValue);
+                    string expression;
 
-                    expression = $"{filteredProperty.Name} == @{parameterCounter++}";
-                    arguments.Add(filterValue);
-                    break;
-
-                case FilterMatchTypes.PARTIAL_MATCH:
-                    if (filteredProperty.PropertyType == typeof(bool))
+                    switch (filter.Type)
                     {
-                        throw new Exception("Bool value can't be partially matched!");
+                        case FilterMatchTypes.EXACT_MATCH:
+                            if (filterHasInvalidValue)
+                                throw new Exception("Invalid filter value!");
+
+                            expression = $"{filteredProperty.Name} == @{parameterCounter++}";
+                            arguments.Add(filterValue);
+                            break;
+
+                        case FilterMatchTypes.PARTIAL_MATCH:
+                            if (filteredProperty.PropertyType == typeof(bool))
+                            {
+                                throw new Exception("Bool value can't be partially matched!");
+                            }
+
+                            // in case of string search, postgres uses ILIKE operator to do case insensitive search
+                            if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == DatabaseProviders.POSTGRES)
+                            {
+                                expression = $"(({filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, {filteredProperty.Name}, \"%{filterStringValue}%\")))";
+                            }
+                            else
+                            {
+                                // https://stackoverflow.com/a/56718249
+                                expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filterStringValue}%\")))";
+                            }
+
+                            break;
+
+                        default:
+                            throw new NotImplementedException();
                     }
 
-                    // in case of string search, postgres uses ILIKE operator to do case insensitive search
-                    if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == DatabaseProviders.POSTGRES)
-                    {
-                        expression = $"(({filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, {filteredProperty.Name}, \"%{filter.Value}%\")))";
-                    }
-                    else
-                    {
-                        // https://stackoverflow.com/a/56718249
-                        expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filter.Value}%\")))";
-                    }
+                    expressions.Add(expression);
+                }
 
-                    break;
-
-                default:
-                    throw new NotImplementedException();
-            }
-
-            return (expression, arguments.ToArray());
+            var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicalOperator]} ", expressions);
+            return (expressionsConcatenated, arguments.ToArray());
         }
 
         /// <summary>
@@ -180,33 +197,26 @@ namespace Intellegens.Commons.Search
         /// <param name="queryParts">List containing expression/arguments pairs</param>
         /// <param name="separator">Separator to use for queries (AND/OR)</param>
         /// <returns>Single tuple containing expression and all arguments</returns>
-        private (string expression, object[] arguments) CombineQueryPartsAndArguments(List<(string expression, object[] arguments)> queryParts, string separator)
+        private (string expression, object[] arguments) CombineQueryPartsAndArguments(IEnumerable<(string expression, object[] arguments)> queryParts, LogicalOperators logicalOperator)
         {
             var parameters = new List<object>();
             string query = "";
 
-            if (queryParts.Any())
+            var queryPartsFiltered = queryParts.Where(x => !string.IsNullOrEmpty(x.expression)).ToList();
+
+            if (queryPartsFiltered.Any())
             {
-                query = string.Join($" {separator} ", queryParts.Select(x => x.expression));
-                queryParts.Select(x => x.arguments).ToList().ForEach(x => parameters.AddRange(x));
+                query = string.Join($" {csharpOperatorsMap[logicalOperator]} ", queryPartsFiltered.Select(x => x.expression));
+                queryPartsFiltered.Select(x => x.arguments).ToList().ForEach(x => parameters.AddRange(x));
+                query = $"( {query} )";
             }
 
             return (query, parameters.ToArray());
         }
 
-        /// <summary>
-        /// Build search query from SearchRequest object
-        /// </summary>
-        /// <param name="sourceData"></param>
-        /// <param name="searchRequest"></param>
-        /// <returns></returns>
-        protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
+        private IEnumerable<(string query, object[] queryParams)> GetQueryPartsAndParams(List<SearchFilter> filters, LogicalOperators logicalOperator)
         {
-            // get all defined filters
-            var filters = searchRequest.Filters.ToList();
-
             // for each filter, get WHERE clause part and query parameters (if any)
-            var queryParams = new List<(string query, object[] queryParams)>();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];
@@ -217,42 +227,35 @@ namespace Intellegens.Commons.Search
                 // get property for given filter key
                 var prop = TypeUtils.GetProperty<T>(filter.Key, StringComparison.OrdinalIgnoreCase);
 
-                // resolve IN as multiple equal
-                if (filter.ValuesIn?.Any() ?? false)
-                {
-                    var queryInListParams = filter.ValuesIn?
-                        .Select(x => GetFilterExpression(SearchFilter.ExactMatch(filter.Key, x), prop))
-                        .ToList();
-                    var (expression, arguments) = CombineQueryPartsAndArguments(queryInListParams, "||");
-                    queryParams.Add(($"({expression})", arguments));
-                }
-
-                // resolve NOT IN as multiple not equal
-                if (filter.ValuesNotIn?.Any() ?? false)
-                {
-                    var queryNotInListParams = filter.ValuesNotIn?
-                        .Select(x => GetFilterExpression(SearchFilter.ExactMatch(filter.Key, x), prop))
-                        .ToList();
-                    var (expression, arguments) = CombineQueryPartsAndArguments(queryNotInListParams, "&&");
-                    queryParams.Add(($"({expression.Replace("==", "!=")})", arguments));
-                }
-
-                if (string.IsNullOrEmpty(filter.Value))
-                    continue;
-
-                queryParams.Add(GetFilterExpression(filter, prop));
+                yield return GetFilterExpression(filter, prop, logicalOperator);
             };
+        }
 
-            // get all WHERE parts, define separator and join them together
-            var separator = searchRequest.Type == FilterTypes.OR ? "||" : "&&";
+        /// <summary>
+        /// Build search query from SearchRequest object
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
+        protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
+        {
+            // get all defined filters/search
+            var filtersParsed = GetQueryPartsAndParams(searchRequest.Filters, LogicalOperators.AND);
+            var searchParsed = GetQueryPartsAndParams(searchRequest.Search, LogicalOperators.OR);
 
-            if (queryParams.Any())
-            {
-                var (expression, arguments) = CombineQueryPartsAndArguments(queryParams, separator);
+            // combine all query parts into single
+            var filtersCombined = CombineQueryPartsAndArguments(filtersParsed, LogicalOperators.AND);
+            var searchCombined = CombineQueryPartsAndArguments(searchParsed, LogicalOperators.OR);
+
+            // combine filter and search
+            var queryParts = new List<(string expression, object[] arguments)> { filtersCombined, searchCombined };
+            var (expression, arguments) = CombineQueryPartsAndArguments(queryParts, LogicalOperators.AND);
+
+            if (!string.IsNullOrEmpty(expression))
                 sourceData = sourceData.Where(parsingConfig, expression, arguments);
-            }
 
             sourceData = OrderQuery(sourceData, searchRequest);
+
             return sourceData;
         }
     }
