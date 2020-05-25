@@ -12,9 +12,9 @@ namespace Intellegens.Commons.Search
     {
         private enum LogicalOperators { AND, OR }
 
-        private Dictionary<LogicalOperators, string> csharpOperatorsMap = new Dictionary<LogicalOperators, string>
+        private readonly Dictionary<LogicalOperators, string> csharpOperatorsMap = new Dictionary<LogicalOperators, string>
         {
-            { LogicalOperators.AND, "==" },
+            { LogicalOperators.AND, "&&" },
             { LogicalOperators.OR, "||" }
         };
 
@@ -33,7 +33,7 @@ namespace Intellegens.Commons.Search
         private int parameterCounter = 0;
 
         private string GetOrderingString(SearchOrder order)
-            => $"{order.Key} {(order.Ascending ? "ascending" : "descending")}";
+            => $"it.{order.Key} {(order.Ascending ? "ascending" : "descending")}";
 
         /// <summary>
         /// Dynamic Linq needs this to know where to look for EF functions
@@ -145,7 +145,7 @@ namespace Intellegens.Commons.Search
             var arguments = new List<object>();
             var expressions = new List<string>();
 
-            if (filter?.Values != null)
+            if (filter?.Values != null && filter.Values.Any())
                 foreach (string filterStringValue in filter.Values)
                 {
                     (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, filterStringValue);
@@ -157,7 +157,7 @@ namespace Intellegens.Commons.Search
                             if (filterHasInvalidValue)
                                 throw new Exception("Invalid filter value!");
 
-                            expression = $"{filteredProperty.Name} == @{parameterCounter++}";
+                            expression = $"it.{filteredProperty.Name} == @{parameterCounter++}";
                             arguments.Add(filterValue);
                             break;
 
@@ -170,12 +170,12 @@ namespace Intellegens.Commons.Search
                             // in case of string search, postgres uses ILIKE operator to do case insensitive search
                             if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == DatabaseProviders.POSTGRES)
                             {
-                                expression = $"(({filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, {filteredProperty.Name}, \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filteredProperty.Name}, \"%{filterStringValue}%\")))";
                             }
                             else
                             {
                                 // https://stackoverflow.com/a/56718249
-                                expression = $"(({filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object({filteredProperty.Name})), \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filteredProperty.Name})), \"%{filterStringValue}%\")))";
                             }
 
                             break;
@@ -188,6 +188,14 @@ namespace Intellegens.Commons.Search
                 }
 
             var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicalOperator]} ", expressions);
+
+            // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
+            if (!string.IsNullOrEmpty(expressionsConcatenated))
+            {
+                var operatorEquality = filter.ComparisonType == ComparisonTypes.NOT_EQUAL ? "!" : "";
+                expressionsConcatenated = $" {operatorEquality}({expressionsConcatenated}) ";
+            }
+
             return (expressionsConcatenated, arguments.ToArray());
         }
 
@@ -214,6 +222,12 @@ namespace Intellegens.Commons.Search
             return (query, parameters.ToArray());
         }
 
+        /// <summary>
+        /// For each filter, builds expression and required parameter
+        /// </summary>
+        /// <param name="filters">List of filters to parse</param>
+        /// <param name="logicalOperator">Logical operator to use in expression (AND/OR)</param>
+        /// <returns></returns>
         private IEnumerable<(string query, object[] queryParams)> GetQueryPartsAndParams(List<SearchFilter> filters, LogicalOperators logicalOperator)
         {
             // for each filter, get WHERE clause part and query parameters (if any)

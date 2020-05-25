@@ -63,11 +63,11 @@ namespace Intellegens.Commons.Search
                 var queryOperator = order.Ascending ? "<" : ">";
 
                 var entityOrderColValue = GetPropertyValue(properties, order.Key, entity);
-                query = query.Where($"({order.Key} {queryOperator} @0) || ({order.Key} == @0 && {keyColumn} < @1)", entityOrderColValue, entityKeyValue);
+                query = query.Where($"(it.{order.Key} {queryOperator} @0) || (it.{order.Key} == @0 && it.{keyColumn} < @1)", entityOrderColValue, entityKeyValue);
             }
             else
             {
-                query = query.Where($" {keyColumn} < @0", entityKeyValue);
+                query = query.Where($" it.{keyColumn} < @0", entityKeyValue);
             }
 
             return await query.CountAsync();
