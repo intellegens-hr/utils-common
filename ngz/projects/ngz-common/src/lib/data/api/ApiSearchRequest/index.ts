@@ -61,7 +61,7 @@ export class ApiSearchRequestFilterModel extends EnTT {
   /**
    * Value to filter by
    */
-  public value = undefined as string;
+  public values = [] as string[];
 }
 
 /**
