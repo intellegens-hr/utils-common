@@ -42,7 +42,7 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
         if (e.state.filters.hasOwnProperty(filterKey)) {
           const filter = new ApiSearchRequestFilterModel();
           filter.key = filterKey;
-          filter.value = e.state.filters[filterKey];
+          filter.values = [e.state.filters[filterKey]];
           this._req.filters.push(filter);
         }
       }

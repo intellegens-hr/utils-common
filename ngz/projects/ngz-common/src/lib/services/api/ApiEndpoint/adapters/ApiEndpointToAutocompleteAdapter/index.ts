@@ -80,7 +80,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    */
   protected _processChanged (value: any) {
     // Update request filters
-    this._req.filters = [{ key: this._filterBy, value }];
+    this._req.search = [{ key: this._filterBy, values: [value] }];
     // Update request ordering
     this._req.ordering = [{ key: this._orderBy, ascending: this._orderAsc }];
     // (Re)Run search
