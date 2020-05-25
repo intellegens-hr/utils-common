@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -19,8 +18,16 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         public decimal Decimal { get; set; }
         public Guid Guid { get; set; }
 
+        [ForeignKey(nameof(Sibling))]
+        public int? SiblingId { get;set;}
+        
+        public SearchTestEntity? Sibling { get; set; }
+
         [InverseProperty("Parent")]
-        public ICollection<SearchTestChildEntity> Children { get;set;}
+        public virtual ICollection<SearchTestChildEntity> Children { get; set; }
+
+        [InverseProperty("Sibling")]
+        public virtual SearchTestEntity? SiblingBackReference { get; set; }
     }
 
     public class SearchTestChildEntity

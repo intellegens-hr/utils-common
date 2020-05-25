@@ -4,7 +4,7 @@ namespace Intellegens.Commons.Search
 {
     public enum FilterMatchTypes { EXACT_MATCH, PARTIAL_MATCH, WILDCARD, REGEX }
 
-    public enum ComparisonTypes { EQUAL, NOT_EQUAL }
+    public enum ComparisonTypes { EQUAL = 0, NOT_EQUAL = 1 }
 
     public class SearchRequest
     {

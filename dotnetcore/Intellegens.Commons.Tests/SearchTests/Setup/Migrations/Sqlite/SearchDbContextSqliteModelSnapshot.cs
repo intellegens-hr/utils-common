@@ -53,6 +53,9 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup.Migrations.Sqlite
                     b.Property<int>("Numeric")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("SiblingId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("TestingSessionId")
                         .HasColumnType("TEXT");
 
@@ -61,16 +64,26 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup.Migrations.Sqlite
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SiblingId")
+                        .IsUnique();
+
                     b.ToTable("SearchTestEntities");
                 });
 
             modelBuilder.Entity("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestChildEntity", b =>
                 {
-                    b.HasOne("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestEntity", "SearchTestEntity")
+                    b.HasOne("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestEntity", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestEntity", b =>
+                {
+                    b.HasOne("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestEntity", "Sibling")
+                        .WithOne("SiblingBackReference")
+                        .HasForeignKey("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestEntity", "SiblingId");
                 });
 #pragma warning restore 612, 618
         }
