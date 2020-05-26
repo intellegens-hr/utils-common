@@ -46,7 +46,7 @@ namespace Intellegens.Commons.Types
 
             foreach (var prop in chain)
             {
-                var propertyType = propertyInfo?.DeclaringType ?? typeof(T);
+                var propertyType = propertyInfo?.PropertyType ?? typeof(T);
 
                 propertyInfo = GetProperties(propertyType)
                 .Where(x => x.Name.Equals(prop, comparison))
