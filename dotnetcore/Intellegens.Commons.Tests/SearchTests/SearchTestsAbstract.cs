@@ -22,18 +22,18 @@ namespace Intellegens.Commons.Tests.SearchTests
             searchServiceChildren = new GenericSearchService<SearchTestChildEntity>(config);
         }
 
-        private readonly SearchDbContext dbContext;
+        protected readonly SearchDbContext dbContext;
         protected readonly GenericSearchService<SearchTestEntity> searchService;
         protected readonly GenericSearchService<SearchTestChildEntity> searchServiceChildren;
 
-        private static SearchTestChildEntity GetTestChildEntity(string testingSessionId, int parentId)
+        protected static SearchTestChildEntity GetTestChildEntity(string testingSessionId, int parentId)
         {
             return new Faker<SearchTestChildEntity>()
                 .RuleFor(u => u.TestingSessionId, f => testingSessionId)
                 .RuleFor(u => u.ParentId, f => parentId);
         }
 
-        private static SearchTestEntity GetTestEntity(string testingSessionId)
+        protected static SearchTestEntity GetTestEntity(string testingSessionId)
         {
             SearchTestEntity entity = new Faker<SearchTestEntity>()
                 .RuleFor(u => u.TestingSessionId, f => testingSessionId)
@@ -51,7 +51,7 @@ namespace Intellegens.Commons.Tests.SearchTests
             return entity;
         }
 
-        private async Task<IQueryable<SearchTestEntity>> GenerateTestDataAndFilterQuery(int count = 20)
+        protected async Task<IQueryable<SearchTestEntity>> GenerateTestDataAndFilterQuery(int count = 20)
         {
             var testingSessionId = Guid.NewGuid().ToString();
 

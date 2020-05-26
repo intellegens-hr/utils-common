@@ -3,15 +3,17 @@ using System;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Intellegens.Commons.Tests.SearchTests.Setup.Migrations.Postgres
 {
     [DbContext(typeof(SearchDbContextPostgres))]
-    partial class SearchDbContextPostgresModelSnapshot : ModelSnapshot
+    [Migration("20200525140640_SiblingEntity")]
+    partial class SiblingEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
