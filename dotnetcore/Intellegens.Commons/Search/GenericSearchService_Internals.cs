@@ -33,7 +33,7 @@ namespace Intellegens.Commons.Search
         private int parameterCounter = 0;
 
         private string GetOrderingString(SearchOrder order)
-            => $"it.{order.Key} {(order.Ascending ? "ascending" : "descending")}";
+            => $"(it.{order.Key}) {(order.Ascending ? "ascending" : "descending")}";
 
         /// <summary>
         /// Dynamic Linq needs this to know where to look for EF functions
@@ -157,7 +157,7 @@ namespace Intellegens.Commons.Search
                             if (filterHasInvalidValue)
                                 throw new Exception("Invalid filter value!");
 
-                            expression = $"it.{filteredProperty.Name} == @{parameterCounter++}";
+                            expression = $"it.{filter.Key} == @{parameterCounter++}";
                             arguments.Add(filterValue);
                             break;
 
@@ -170,12 +170,12 @@ namespace Intellegens.Commons.Search
                             // in case of string search, postgres uses ILIKE operator to do case insensitive search
                             if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
                             {
-                                expression = $"((it.{filteredProperty.Name} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filteredProperty.Name}, \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filter.Key} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filter.Key}, \"%{filterStringValue}%\")))";
                             }
                             else
                             {
                                 // https://stackoverflow.com/a/56718249
-                                expression = $"((it.{filteredProperty.Name} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filteredProperty.Name})), \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filter.Key} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filter.Key})), \"%{filterStringValue}%\")))";
                             }
 
                             break;
