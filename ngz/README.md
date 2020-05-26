@@ -124,7 +124,9 @@ class ResourceModel extends EnTT { /* ... */}
 
 class MyClass {
   constructor (public _adapterFactory: ApiEndpointToGridAdapterFactory) {
-    this._adapter = this._adapterFactory.create('/resources', ResourceModel);
+    this._adapter = this._adapterFactory.create('/resources', ResourceModel, {
+      enttToString: res => res.title
+    });
     this._adapter.configure({
       preload: false,
       debounceInterval: 400,
@@ -152,8 +154,11 @@ class MyClass {
   constructor (public _adapterFactory: ApiEndpointToAutocompleteAdapterFactory) {
     this._adapter = this._adapterFactory.create(
       '/resources',
-      ['title', 'code'], ['title', '!code'],
-      ResourceModel, (instance: ResourceModel) => `${instance.title} (${instance.code})`
+      ResourceModel, {
+        searchBy: ['title', 'code'],
+        orderBy: ['title', '!code']
+        enttToString: res => `${res.title} (${res.code})`
+      }
     );
     this._adapter.configure({
       preload: false,

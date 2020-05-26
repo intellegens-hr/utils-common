@@ -20,16 +20,15 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
   /**
    * Holds names of properties to filter by
    */
-  protected _filterBy = [] as string[];
+  protected _searchBy = [] as string[];
   /**
    * Holds names of properties to order by (starting with a '!' character if ordering descending)
    */
   protected _orderBy = [] as string[];
-
   /**
-   * Holds function converting EnTT instance to a representative string
+   * Holds array of IDs, or a function returning an array of IDs to exclude from results
    */
-  protected _enttToString = undefined as (entt: EnTT) => string
+  protected _excludeIds = undefined as any | (() => any);
 
   /**
    * Holds items found by the last search
@@ -57,24 +56,27 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param filterBy Names of properties to be filter by
+   * @param searchBy Names of properties to be filter by
    * @param orderBy Names of properties to be order by (starting with a '!' character if ordering descending)
+   * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
    * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   protected _bind (
     endpoint: string,
     entt?: (new() => EnTT),
     {
-      filterBy     = [] as string[],
+      searchBy     = [] as string[],
       orderBy      = [] as string[],
+      excludeIds   = undefined as any | (() => any),
       enttToString = undefined as (entt: EnTT) => string
     } = {}
   ) {
     // Bind to endpoint
     super._bind(endpoint, entt);
     // Store properties
-    this._filterBy = filterBy;
+    this._searchBy = searchBy;
     this._orderBy = orderBy;
+    this._excludeIds = excludeIds;
     this._enttToString = enttToString;
   }
 
@@ -83,12 +85,24 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    * @param value Autocomplete change event value
    */
   protected _processChanged (value: any) {
-    // Update request filters
-    this._req.search = this._filterBy.map(filterBy => {
-      const filter = new ApiSearchRequestFilterModel();
-      filter.key = filterBy;
-      filter.values = [value]
-      return filter;
+    // Update require filters
+    const excludedIds = (this._excludeIds ? (this._excludeIds instanceof Function ? this._excludeIds() : this._excludeIds) : {});
+    for (const key of Object.keys(excludedIds)) {
+      this._req.filters = excludedIds[key].map(excludedId => {
+        const filter = new ApiSearchRequestFilterModel();
+        filter.key = key;
+        filter.type = ApiSearchRequestFilterModel.Type.ExactMatch;
+        filter.comparisonType = ApiSearchRequestFilterModel.ComparisonType.Negated;
+        filter.values = [excludedId]
+        return filter;
+      });
+    }
+    // Update request search
+    this._req.search = this._searchBy.map(searchBy => {
+      const search = new ApiSearchRequestFilterModel();
+      search.key = searchBy;
+      search.values = [value]
+      return search;
     });
     // Update request ordering
     this._req.ordering = this._orderBy.map(orderBy => {
@@ -152,22 +166,26 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
-   * @param filterBy Names of properties to search by
-   * @param orderBy Names of properties to search by (starting with a '!' character if ordering descending)
    * @param entt (Optional) EnTT class to cast response as
+   * @param searchBy Names of properties to search by
+   * @param orderBy Names of properties to search by (starting with a '!' character if ordering descending)
+   * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
    * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public bind (
     endpoint: string,
-    filterBy: string[],
-    orderBy: string[],
     entt?: (new() => EnTT),
-    enttToString?: (entt: EnTT) => string
+    {
+      searchBy     = [] as string[],
+      orderBy      = [] as string[],
+      excludeIds   = undefined as any | (() => any),
+      enttToString = undefined as (entt: EnTT) => string
+    } = {}
   ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { filterBy, orderBy, enttToString });
+    this._bind(endpoint, entt, { searchBy, orderBy, excludeIds, enttToString });
   }
 
   /**
@@ -214,20 +232,29 @@ export class ApiEndpointToAutocompleteAdapterFactory {
   /**
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
-   * @param filterBy Names of properties to search by
-   * @param orderBy (Optional) Names of properties to search by (starting with a '!' character if ordering descending)
    * @param entt (Optional) EnTT class to cast response as
+   * @param searchBy Names of properties to search by
+   * @param orderBy (Optional) Names of properties to search by (starting with a '!' character if ordering descending)
+   * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
    * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public create (
     endpoint: string,
-    filterBy: string[],
-    orderBy?: string[],
     entt?: (new() => EnTT),
-    enttToString?: (entt: EnTT) => string
+    {
+      searchBy     = [] as string[],
+      orderBy      = [] as string[],
+      excludeIds   = undefined as any | (() => any),
+      enttToString = undefined as (entt: EnTT) => string
+    } = {}
   ) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);
-    adapter.bind(endpoint, filterBy, (orderBy || filterBy), entt, (enttToString || entt?.toString || undefined));
+    adapter.bind(endpoint, entt, {
+      searchBy,
+      orderBy: (orderBy || searchBy),
+      excludeIds,
+      enttToString: (enttToString || entt?.toString || undefined)
+    });
     return adapter;
   }
 }

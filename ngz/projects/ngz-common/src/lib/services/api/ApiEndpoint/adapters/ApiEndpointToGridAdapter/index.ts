@@ -21,11 +21,6 @@ import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../.
 export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
-   * Holds function converting EnTT instance to a representative string
-   */
-  protected _enttToString = undefined as (entt: EnTT) => string
-
-  /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
@@ -160,7 +155,9 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
   public bind (
     endpoint: string,
     entt?: (new() => EnTT),
-    enttToString?: (entt: EnTT) => string
+    {
+      enttToString = undefined as (entt: EnTT) => string
+    } = {}
   ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
@@ -212,10 +209,14 @@ export class ApiEndpointToGridAdapterFactory {
   public create (
     endpoint: string,
     entt?: (new() => EnTT),
-    enttToString?: (entt: EnTT) => string
+    {
+      enttToString = undefined as (entt: EnTT) => string
+    } = {}
   ) {
     const adapter = new ApiEndpointToGridAdapter(this._endpointFactory);
-    adapter.bind(endpoint, entt, (enttToString || entt?.toString || undefined));
+    adapter.bind(endpoint, entt, {
+      enttToString: (enttToString || entt?.toString || undefined)
+    });
     return adapter;
   }
 }
