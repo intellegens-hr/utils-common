@@ -4,9 +4,8 @@
 // Import dependencies
 import { Subject, interval } from 'rxjs';
 import { debounce } from 'rxjs/operators';
-import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { ApiEndpointFactory, ApiEndpoint } from '../../';
+import {  ApiEndpoint } from '../../';
 import { HttpRequestPromise } from '../../../Http'
 
 // Import data models

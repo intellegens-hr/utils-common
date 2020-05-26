@@ -21,6 +21,30 @@ import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../.
 export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
+   * Holds function converting EnTT instance to a representative string
+   */
+  protected _enttToString = undefined as (entt: EnTT) => string
+
+  /**
+   * Binds service instance to a particular endpoint
+   * @param endpoint Endpoint name (relative path)
+   * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
+   */
+  protected _bind (
+    endpoint: string,
+    entt?: (new() => EnTT),
+    {
+      enttToString = undefined as (entt: EnTT) => string
+    } = {}
+  ) {
+    // Bind to endpoint
+    super._bind(endpoint, entt);
+    // Store properties
+    this._enttToString = enttToString;
+  }
+
+  /**
    * Grid input adapter: handles grid component's change event, updates and reruns the search
    * @param e Grid change event descriptor
    */
@@ -122,18 +146,26 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
 
   constructor (private _endpointFactory: ApiEndpointFactory) {
     super();
+
+    // Bind toString to the adapter
+    this.toString = this.toString.bind(this);
   }
 
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public bind (endpoint: string, entt?: (new() => EnTT)) {
+  public bind (
+    endpoint: string,
+    entt?: (new() => EnTT),
+    enttToString?: (entt: EnTT) => string
+  ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt);
+    this._bind(endpoint, entt, { enttToString });
     // Search (after timeout to allow additional configuration)
     setTimeout(() => { this._search(); });
   }
@@ -153,6 +185,13 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
     this._changed(e);
   }
 
+  /**
+   * Converts EnTT instance to a representative string
+   * @param instance EnTT instance to convert to string
+   */
+  public toString (instance: EnTT) {
+    return (this._enttToString ? this._enttToString(instance) : instance);
+  }
 
 }
 
@@ -168,10 +207,15 @@ export class ApiEndpointToGridAdapterFactory {
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public create (endpoint: string, entt?: (new() => EnTT)) {
+  public create (
+    endpoint: string,
+    entt?: (new() => EnTT),
+    enttToString?: (entt: EnTT) => string
+  ) {
     const adapter = new ApiEndpointToGridAdapter(this._endpointFactory);
-    adapter.bind(endpoint, entt);
+    adapter.bind(endpoint, entt, (enttToString || entt?.toString || undefined));
     return adapter;
   }
 }

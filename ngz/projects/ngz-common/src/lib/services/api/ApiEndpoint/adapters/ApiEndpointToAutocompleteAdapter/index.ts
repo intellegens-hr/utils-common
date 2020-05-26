@@ -9,23 +9,27 @@ import { ApiEndpointFactory } from '../../';
 // Import base
 import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
+// Import data models
+import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../../../../data';
+
 /**
  * API Endpoint to Autocomplete component adapter (internal implementation)
  */
 export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAdapter {
 
   /**
-   * Holds name of property to filter by
+   * Holds names of properties to filter by
    */
-  protected _filterBy = null;
+  protected _filterBy = [] as string[];
   /**
-   * Holds name of property to order by
+   * Holds names of properties to order by (starting with a '!' character if ordering descending)
    */
-  protected _orderBy = null;
+  protected _orderBy = [] as string[];
+
   /**
-   * Holds If ordering should be in ascending order
+   * Holds function converting EnTT instance to a representative string
    */
-  protected _orderAsc = null;
+  protected _enttToString = undefined as (entt: EnTT) => string
 
   /**
    * Holds items found by the last search
@@ -53,25 +57,25 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param filterBy Name of property to be filter by
-   * @param orderBy Name of property to be order by
-   * @param orderAsc If ordering should be in ascending order
+   * @param filterBy Names of properties to be filter by
+   * @param orderBy Names of properties to be order by (starting with a '!' character if ordering descending)
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   protected _bind (
     endpoint: string,
     entt?: (new() => EnTT),
     {
-      filterBy = undefined as string,
-      orderBy = undefined as string,
-      orderAsc = true
+      filterBy     = [] as string[],
+      orderBy      = [] as string[],
+      enttToString = undefined as (entt: EnTT) => string
     } = {}
   ) {
     // Bind to endpoint
     super._bind(endpoint, entt);
-    // Store key
+    // Store properties
     this._filterBy = filterBy;
     this._orderBy = orderBy;
-    this._orderAsc = orderAsc;
+    this._enttToString = enttToString;
   }
 
   /**
@@ -80,9 +84,19 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    */
   protected _processChanged (value: any) {
     // Update request filters
-    this._req.search = [{ key: this._filterBy, values: [value] }];
+    this._req.search = this._filterBy.map(filterBy => {
+      const filter = new ApiSearchRequestFilterModel();
+      filter.key = filterBy;
+      filter.values = [value]
+      return filter;
+    });
     // Update request ordering
-    this._req.ordering = [{ key: this._orderBy, ascending: this._orderAsc }];
+    this._req.ordering = this._orderBy.map(orderBy => {
+      const ordering = new ApiSearchRequestOrderModel();
+      ordering.key = (orderBy.startsWith('!') ? orderBy.substr(1) : orderBy);
+      ordering.ascending = !orderBy.startsWith('!');
+      return ordering;
+    });
     // (Re)Run search
     this._search();
   }
@@ -130,27 +144,30 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
 
   constructor (private _endpointFactory: ApiEndpointFactory) {
     super();
+
+    // Bind toString to the adapter
+    this.toString = this.toString.bind(this);
   }
 
   /**
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
-   * @param filterBy Name of property to search by
-   * @param orderBy Name of property to search by
-   * @param orderAsc Name of property to search by
+   * @param filterBy Names of properties to search by
+   * @param orderBy Names of properties to search by (starting with a '!' character if ordering descending)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public bind (
     endpoint: string,
-    filterBy: string,
-    orderBy: string,
-    orderAsc = true,
-    entt?: (new() => EnTT)
+    filterBy: string[],
+    orderBy: string[],
+    entt?: (new() => EnTT),
+    enttToString?: (entt: EnTT) => string
   ) {
     // (Re)Create endpoint instance
     this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { filterBy, orderBy, orderAsc });
+    this._bind(endpoint, entt, { filterBy, orderBy, enttToString });
   }
 
   /**
@@ -165,7 +182,7 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
    * @param e Event?
    */
   public opened (e) {
-    console.log(e);
+    this._search();
   }
 
   /**
@@ -174,6 +191,14 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
    */
   public changed (value: any) {
     this._changed(value);
+  }
+
+  /**
+   * Converts EnTT instance to a representative string
+   * @param instance EnTT instance to convert to string
+   */
+  public toString (instance: EnTT) {
+    return (this._enttToString ? this._enttToString(instance) : instance);
   }
 
 }
@@ -189,14 +214,20 @@ export class ApiEndpointToAutocompleteAdapterFactory {
   /**
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
-   * @param filterBy Name of property to search by
-   * @param orderBy (Optional) Name of property to search by
-   * @param orderAsc (Optional) Name of property to search by
+   * @param filterBy Names of properties to search by
+   * @param orderBy (Optional) Names of properties to search by (starting with a '!' character if ordering descending)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public create (endpoint: string, filterBy: string, orderBy?: string, orderAsc?: boolean, entt?: (new() => EnTT)) {
+  public create (
+    endpoint: string,
+    filterBy: string[],
+    orderBy?: string[],
+    entt?: (new() => EnTT),
+    enttToString?: (entt: EnTT) => string
+  ) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);
-    adapter.bind(endpoint, filterBy, (orderBy || filterBy), (orderAsc !== undefined ? orderAsc : true), entt);
+    adapter.bind(endpoint, filterBy, (orderBy || filterBy), entt, (enttToString || entt?.toString || undefined));
     return adapter;
   }
 }
