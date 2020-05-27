@@ -168,12 +168,14 @@ namespace Intellegens.Commons.Search
                             // in case of string search, postgres uses ILIKE operator to do case insensitive search
                             if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
                             {
-                                expression = $"((it.{filter.Key} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filter.Key}, \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filter.Key} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filter.Key}, {parameterPlaceholder})))";
+                                arguments.Add($"%{filterStringValue}%");
                             }
                             else
                             {
                                 // https://stackoverflow.com/a/56718249
-                                expression = $"((it.{filter.Key} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filter.Key})), \"%{filterStringValue}%\")))";
+                                expression = $"((it.{filter.Key} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filter.Key})), {parameterPlaceholder})))";
+                                arguments.Add($"%{filterStringValue}%");
                             }
 
                             break;
