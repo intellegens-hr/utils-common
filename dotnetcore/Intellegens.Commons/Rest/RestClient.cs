@@ -88,6 +88,18 @@ namespace Intellegens.Commons.Rest
             return await GetResponseResult<T>(response);
         }
 
+        public virtual async Task<RestResult<T>> Put<T>(string url, object dataToSend = null)
+        {
+            var message = await GetHttpRequestMessage(HttpMethod.Put, url);
+
+            if (dataToSend != null)
+                message.Content = new StringContent(JsonConvert.SerializeObject(dataToSend), Encoding.UTF8, "application/json");
+
+            var response = await httpClient.SendAsync(message);
+
+            return await GetResponseResult<T>(response);
+        }
+
         public void Dispose()
         {
             httpClient.Dispose();
