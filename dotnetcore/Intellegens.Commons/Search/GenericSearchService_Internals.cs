@@ -18,6 +18,8 @@ namespace Intellegens.Commons.Search
             { LogicalOperators.OR, "||" }
         };
 
+        private const string parameterPlaceholder = "@@Parameter@@";
+
         // Using dynamic query exposes a possibility of sql injection.
         // If fieldname contains anything but underscore, letters and numbers - it's invalid
         private void ValidateDynamicLinqFieldName(string key)
@@ -26,11 +28,6 @@ namespace Intellegens.Commons.Search
             if (!isNameValid)
                 throw new Exception("Possible SQL Injection!");
         }
-
-        /// <summary>
-        /// Used to name SQL parameters: @0, @1, ...
-        /// </summary>
-        private int parameterCounter = 0;
 
         private string GetOrderingString(SearchOrder order)
             => $"(it.{order.Key}) {(order.Ascending ? "ascending" : "descending")}";
@@ -157,7 +154,7 @@ namespace Intellegens.Commons.Search
                             if (filterHasInvalidValue)
                                 throw new Exception("Invalid filter value!");
 
-                            expression = $"it.{filter.Key} == @{parameterCounter++}";
+                            expression = $"it.{filter.Key} == {parameterPlaceholder}";
                             arguments.Add(filterValue);
                             break;
 
@@ -266,7 +263,21 @@ namespace Intellegens.Commons.Search
             var (expression, arguments) = CombineQueryPartsAndArguments(queryParts, LogicalOperators.AND);
 
             if (!string.IsNullOrEmpty(expression))
-                sourceData = sourceData.Where(parsingConfig, expression, arguments);
+            {
+                // expression contains parameter placeholder defined in const parameterPlaceholder
+                // each query must contain parameters in following pattern: @0, @1, ...
+                // we need to replace placeholder with this kind of expression
+                var expressionParamParts = expression.Split(parameterPlaceholder);
+                var expressionWithParamsReplaced = expressionParamParts[0];
+
+                for (int i = 1; i < expressionParamParts.Length; i++)
+                {
+                    string expr = expressionParamParts[i];
+                    expressionWithParamsReplaced += $"@{i - 1}{expr}"; // parameters start from @0
+                }
+
+                sourceData = sourceData.Where(parsingConfig, expressionWithParamsReplaced, arguments);
+            }
 
             sourceData = OrderQuery(sourceData, searchRequest);
 
