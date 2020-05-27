@@ -42,7 +42,8 @@ namespace Intellegens.Commons.Search
 
         private static readonly HashSet<Type> IntTypes = new HashSet<Type>
         {
-            typeof(short), typeof(ushort), typeof(int), typeof(uint)
+            typeof(short), typeof(ushort), typeof(int), typeof(uint),
+             typeof(sbyte), typeof(byte)
         };
 
         private static readonly HashSet<Type> DecimalTypes = new HashSet<Type>
