@@ -4,6 +4,7 @@
 - `HttpRequestPromise<T>` returned from `ApiEndpoint` now contains a new `.info` property describing the request being handled
 - Updated `ApiSearchRequestModel` with separated filtering/search functionality and both `ApiEndpointToGridAdapter` and `ApiEndpointToAutocompleteAdapter` to match
 - `ApiEndpointToGridAdapter` and `ApiEndpointToAutocompleteAdapter` now accept and expose a "toString" function for converting EnTT instances into presentable string representation
+- `ApiEndpoint` now uses PUT instead of POST for updates
 
 #### v1.0.3
 
