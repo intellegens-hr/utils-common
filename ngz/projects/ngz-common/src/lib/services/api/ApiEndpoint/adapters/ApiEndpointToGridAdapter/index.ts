@@ -49,7 +49,7 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
       // Cancel local ordering, pagination and filtering
       e.preventDefault();
       // Update search request
-      this._req.offset = e.state.pageIndex * e.state.pageLength;
+      this._req.offset = (e.state.pageIndex * e.state.pageLength) || 0;
       this._req.limit  = e.state.pageLength;
       this._req.ordering = [];
       const order = new ApiSearchRequestOrderModel();

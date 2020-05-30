@@ -176,15 +176,14 @@ export class ApiEndpoint {
   /**
    * Deletes an item from the endpoint
    * @param id Id of the endpoint item
+   * @param item (Optional) Item to update
    * @throws Errors returned by the API
    */
-  public delete (id: any) {
+  public delete (id: any, item?: any) {
     return this._action(
       this._http.delete(`${this._endpoint}/${id}`),
-      (data) => {
-        const result = (this._entt ? EnTT.cast(data, { into: this._entt }) : data);
-        this._triggerActionExecutedEvent(ApiEndpointAction.DELETE, result);
-        return result;
+      () => {
+        this._triggerActionExecutedEvent(ApiEndpointAction.DELETE, item);
       }
     );
   }

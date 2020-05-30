@@ -1,6 +1,10 @@
+#### v1.0.7
+
+- `ApiEndpoint`'s `.actions` event emitter will now include the action EnTT instance instance even for the`delete` action
+
 #### v1.0.6
 
-- `ApiEndpoint` now exposes a global and instance level `.actions` even emitter triggering on any create, update or delete action
+- `ApiEndpoint` now exposes a global and instance level `.actions` event emitter triggering on any create, update or delete action
 
 #### v1.0.5
 
