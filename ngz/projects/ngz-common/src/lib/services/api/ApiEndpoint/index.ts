@@ -20,7 +20,7 @@ export enum ApiEndpointAction {
 
 /**
  * API Endpoint service
- * Provides communication with a standardized API endpoint
+ * Provides communication with a standardized API endpoints
  */
 export class ApiEndpoint {
 
@@ -64,10 +64,6 @@ export class ApiEndpoint {
    * Holds (optional) EnTT class to cast response as
    */
   private _entt: (new() => EnTT);
-  /**
-   * Holds function converting EnTT instance to a representative string
-   */
-  protected _enttToString = undefined as (entt: EnTT) => string
 
   constructor (private _http: HttpService) {}
 
@@ -75,12 +71,10 @@ export class ApiEndpoint {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public bind (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
+  public bind (endpoint: string, entt?: (new() => EnTT)) {
     this._endpoint = endpoint;
     this._entt = entt;
-    this._enttToString = enttToString;
   }
 
   /**
@@ -227,7 +221,7 @@ export class ApiEndpoint {
    */
   private _triggerActionExecutedEvent (action: ApiEndpointAction, entt?: any) {
     // Compose action descriptor
-    const e = new ApiEndpointActionEvent(action, entt, this._enttToString);
+    const e = new ApiEndpointActionEvent(action, entt);
     // Trigger local event
     if (!e._preventedDefault) { this.action.emit(e); }
     // Trigger global event
@@ -246,11 +240,10 @@ export class ApiEndpointActionEvent {
    */
   public _preventedDefault = false;
 
-  constructor (action: ApiEndpointAction, entt?: any, enttToString?: ((entt: any) => string)) {
+  constructor (action: ApiEndpointAction, entt?: any) {
     // Store properties
     this.action = action;
     this.entt = entt;
-    this.enttToString = enttToString;
   }
 
   /**
@@ -261,10 +254,6 @@ export class ApiEndpointActionEvent {
    * EnTT instance resulting from the action
    */
   public entt: any;
-  /**
-   * Function converting the EnTT instance into a string representation
-   */
-  public enttToString: (entt: any) => string
 
   /**
    * Prevents the event from continuing execution (usually used in local event handler to prevent global from triggering)
@@ -277,7 +266,7 @@ export class ApiEndpointActionEvent {
 
 /**
  * API Endpoint service factory
- * Instantiates ApiEndpoint service instances, providing communication with a standardized API endpoint
+ * Instantiates ApiEndpoint service instances, providing communication with a standardized API endpoints
  */
 @Injectable()
 export class ApiEndpointFactory {
@@ -287,11 +276,12 @@ export class ApiEndpointFactory {
    * Creates a new api endpoint instance
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public create (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
+  public create (endpoint?: string, entt?: (new() => EnTT)) {
     const service = new ApiEndpoint(this._http);
-    service.bind(endpoint, entt, { enttToString });
+    if (endpoint) {
+      service.bind(endpoint, entt);
+    }
     return service;
   }
 }

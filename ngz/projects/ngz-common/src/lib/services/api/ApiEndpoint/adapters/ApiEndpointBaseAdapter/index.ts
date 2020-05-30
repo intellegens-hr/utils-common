@@ -49,11 +49,6 @@ export class ApiEndpointBaseAdapter {
   protected _entt = undefined as new() => EnTT
 
   /**
-   * Holds function converting EnTT instance to a representative string
-   */
-  protected _enttToString = undefined as (entt: EnTT) => string
-
-  /**
    * Adapter configuration
    */
   protected _config = new ApiEndpointToGridAdapterConfiguration();
@@ -97,14 +92,12 @@ export class ApiEndpointBaseAdapter {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  protected _bind (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
+  protected _bind (endpoint: string, entt?: (new() => EnTT)) {
     // Store properties
     this._entt = entt;
-    this._enttToString = enttToString;
     // Bind to endpoint
-    this._endpoint.bind(endpoint, entt, { enttToString });
+    this._endpoint.bind(endpoint, entt);
     // Reset request
     this._req = new ApiSearchRequestModel();
     this._req.limit = this._config.defaultPageLength;
@@ -162,14 +155,6 @@ export class ApiEndpointBaseAdapter {
   protected _processChanged (e: any) {
     // (Re)Run search
     this._search();
-  }
-
-  /**
-   * Converts EnTT instance to a representative string
-   * @param entt EnTT instance to convert to string
-   */
-  protected _toString (entt: EnTT) {
-    return (this._enttToString ? this._enttToString(entt) : entt);
   }
 
 }
