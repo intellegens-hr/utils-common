@@ -1,3 +1,7 @@
+#### v1.0.8
+
+...
+
 #### v1.0.7
 
 - `ApiEndpoint`'s `.actions` event emitter will now include the action EnTT instance instance even for the`delete` action
