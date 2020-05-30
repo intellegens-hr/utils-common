@@ -9,16 +9,18 @@ Angular library containing reusable code shared between multiple projects ...
 import { CommonUtilsModule } from '@intellegens/ngz-common'
 ```
 
-### AuthTokenInjector
+### HttpAuthTokenInjector
 
 ```ts
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
-import { AuthTokenInjector } from '@intellegens/ngz-common';
+import { HttpAuthTokenInjector, HttpErrorInterceptor } from '@intellegens/ngz-common';
 
 @NgModule({
   providers: [
+    // Inject HTTP Error interceptor
+    { provide: HTTP_INTERCEPTORS, useClass: HttpErrorInterceptor, multi: true },
     // Inject HTTP Authentication token injection interceptor
-    { provide: HTTP_INTERCEPTORS, useClass: AuthTokenInjector, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: HttpAuthTokenInjector, multi: true }
   ]
 })
 class MyModule {}
@@ -30,15 +32,21 @@ class MyModule {}
 
 ```ts
 import { HttpService } from '@intellegens/ngz-common';
+import { HttpErrorResponse } from '@angular/common/http';
+
+class MyApp {
+  constructor () {
+    // Set authentication token
+    HttpService.setAuthToken('abcdef')
+    // Initialize API base url
+    HttpService.initialize('/api');
+    // Set up global error handling
+    HttpService.error.subscribe((err : HttpErrorResponse) => alert(err));
+  }
+}
 
 class MyComponent {
   constructor (private http: HttpService) {
-
-    // Set authentication token
-    HttpService.setAuthToken('abcdef')
-
-    // Initialize API base url
-    this.http.initialize('/api');
 
     // Use HTTP service
     try {
@@ -75,7 +83,18 @@ class MyComponent {
 
 ```ts
 import { EnTT } from '@ofzza/entt-rxjs'
-import { ApiEndpointFactory } from '@intellegens/ngz-common';
+import { ApiEndpointFactory, ApiEndpoint, ApiEndpointAction } from '@intellegens/ngz-common';
+
+class MyApp {
+  constructor () {
+    // Initialize API 
+    ApiEndpoint.initialize();
+    // Set up global error handling
+    ApiEndpoint.error.subscribe((err: EnttValidationError) => alert(err));
+    // Set up global action handling
+    ApiEndpoint.action.subscribe((e: ApiEndpointAction) => alert(e));
+  }
+}
 
 class ResourceModel extends EnTT { /* ... */}
 
@@ -85,6 +104,14 @@ class MyComponent {
     // Initialize endpoint(s)
     this.endpointRaw = this.endpointFactory('/resource');
     this.endpointEnTT = this.endpointFactory('/resource', ResourceModel);
+
+    // Set up local action handling
+    this.endpointEnTT.action.subscribe((e: ApiEndpointAction) => {
+      if (e.action === ApiEndpointActions.CREATE) {
+        alert(e);
+        e.preventDefault();
+      }
+    });
 
     // Get list of all resources from endpoint
     const dataRaw: object[]             = await this.endpointRaw.list(),

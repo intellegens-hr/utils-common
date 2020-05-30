@@ -2,8 +2,10 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams, HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+import { throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { Injectable, EventEmitter } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams, HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
 
 // Import data-models
 import { EnTT } from '@ofzza/entt-rxjs';
@@ -15,6 +17,25 @@ import { ApiRequestModel, ApiResponseModel } from '../../../data'
  */
 @Injectable()
 export class HttpService {
+
+  /**
+   * Holds API base url service was initialized with
+   */
+  private static _url: string = null;
+
+  /**
+   * Global HTTP error event
+   */
+  public static error = new EventEmitter<HttpErrorResponse>();
+
+  /**
+   * Initializes the HTTP service
+   * @param url HTTP base url
+   */
+  public static initialize (url: string) {
+    // Store initialized properties
+    HttpService._url = url;
+  }
 
   /**
    * Sets authentication token to be used with all requests
@@ -38,23 +59,9 @@ export class HttpService {
   }
 
   /**
-   * Holds API base url service was initialized with
-   */
-  private _url: string = null;
-
-  /**
    * Creates an instance of ApiService.
    */
   constructor (private _http: HttpClient) {}
-
-  /**
-   * Initializes the API service
-   * @param url API base url
-   */
-  public initialize (url: string) {
-    // Store initialized properties
-    this._url = url;
-  }
 
   /**
    * Executes an HTTP GET request
@@ -207,7 +214,7 @@ export class HttpService {
       // Ready HTTP request
       const reqParams = {
         method,
-        url:     `${this._url}/${path.length && path[0] === '/' ? path.substr(1) : path}`,
+        url:     `${HttpService._url}/${path.length && path[0] === '/' ? path.substr(1) : path}`,
         body:    (body ? (body instanceof EnTT ? body.serialize() : body) : undefined),
         headers: {
           'Content-Type': 'application/json;charset=UTF-8',
@@ -371,10 +378,31 @@ export class HttpRequestInfo {
 }
 
 /**
+ * Intercepts HTTP requests and surfaces API errors
+ */
+@Injectable()
+export class HttpErrorInterceptor implements HttpInterceptor {
+
+  public intercept (req: HttpRequest<any>, next: HttpHandler) {
+
+    // Intercept errors
+    return next.handle(req)
+      .pipe(
+        map((event: HttpEvent<any>) => event),
+        catchError((err: HttpErrorResponse) => {
+          HttpService.error.emit(err);
+          return throwError(err);
+        })
+      );
+
+  }
+}
+
+/**
  * Intercepts HTTP requests and injects authentication token
  */
 @Injectable()
-export class AuthTokenInjector implements HttpInterceptor {
+export class HttpAuthTokenInjector implements HttpInterceptor {
 
   public intercept (req: HttpRequest<any>, next: HttpHandler) {
 
@@ -395,3 +423,4 @@ export class AuthTokenInjector implements HttpInterceptor {
   }
 
 }
+

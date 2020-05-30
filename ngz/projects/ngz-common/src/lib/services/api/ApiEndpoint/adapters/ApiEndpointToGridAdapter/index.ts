@@ -34,7 +34,7 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
     } = {}
   ) {
     // Bind to endpoint
-    super._bind(endpoint, entt);
+    super._bind(endpoint, entt, { enttToString });
     // Store properties
     this._enttToString = enttToString;
   }
@@ -160,7 +160,7 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
     } = {}
   ) {
     // (Re)Create endpoint instance
-    this._endpoint = this._endpointFactory.create(endpoint, entt);
+    this._endpoint = this._endpointFactory.create(endpoint, entt, { enttToString });
     // Bind to endpoint
     this._bind(endpoint, entt, { enttToString });
     // Search (after timeout to allow additional configuration)

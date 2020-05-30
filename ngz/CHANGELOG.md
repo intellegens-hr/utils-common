@@ -1,3 +1,7 @@
+#### v1.0.6
+
+- `ApiEndpoint` now exposes a global and instance level `.actions` even emitter triggering on any create, update or delete action
+
 #### v1.0.5
 
 - `HttpRequestPromise<T>` returned from `HttpService` now contains a new `.info` property describing the request being handled

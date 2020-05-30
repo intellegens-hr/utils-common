@@ -2,18 +2,58 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
-import { Injectable } from '@angular/core';
-import { EnTT } from '@ofzza/entt-rxjs';
+import { EnTT, EnttValidationError } from '@ofzza/entt-rxjs';
+import { Injectable, EventEmitter } from '@angular/core';
 import { HttpService, HttpServiceError, HttpRequestPromise } from '../Http';
 
 // Import data-models
 import { ApiSearchRequestModel, ApiSearchResponseModel } from '../../../data';
 
 /**
+ * Enumerated endpoint actions
+ */
+export enum ApiEndpointAction {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete'
+}
+
+/**
  * API Endpoint service
  * Provides communication with a standardized API endpoint
  */
 export class ApiEndpoint {
+
+  /**
+   * Global API error event
+   */
+  public static error = new EventEmitter<EnttValidationError[]>();
+
+  /**
+   * Global API action event
+   */
+  public static action = new EventEmitter<ApiEndpointActionEvent>();
+
+  /**
+   * Initializes the API service
+   */
+  public static initialize () {
+    // Store initialized properties
+    HttpService.error.subscribe((err) => {
+      if (err?.error?.errors) {
+        ApiEndpoint.error.emit(
+          err.error.errors.map(error => new EnttValidationError({ type: error.code }))
+        );
+      } else {
+        ApiEndpoint.error.emit([new EnttValidationError({ type: 'unknown' })]);
+      }
+    });
+  }
+
+  /**
+   * API action event
+   */
+  public action = new EventEmitter<ApiEndpointActionEvent>();
 
   /**
    * Holds endpoint name (relative path)
@@ -24,6 +64,10 @@ export class ApiEndpoint {
    * Holds (optional) EnTT class to cast response as
    */
   private _entt: (new() => EnTT);
+  /**
+   * Holds function converting EnTT instance to a representative string
+   */
+  protected _enttToString = undefined as (entt: EnTT) => string
 
   constructor (private _http: HttpService) {}
 
@@ -31,10 +75,12 @@ export class ApiEndpoint {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public bind (endpoint: string, entt?: (new() => EnTT)) {
+  public bind (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
     this._endpoint = endpoint;
     this._entt = entt;
+    this._enttToString = enttToString;
   }
 
   /**
@@ -102,11 +148,9 @@ export class ApiEndpoint {
     return this._action(
       this._http.post(this._endpoint, item),
       (data: any[]) => {
-        if (data && data.length) {
-          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
-        } else {
-          return null;
-        }
+        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]) : undefined);
+        this._triggerActionExecutedEvent(ApiEndpointAction.CREATE, result);
+        return result;
       }
     );
   }
@@ -122,11 +166,9 @@ export class ApiEndpoint {
     return this._action(
       this._http.put(`${this._endpoint}/${id}`, item),
       (data: any[]) => {
-        if (data && data.length) {
-          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
-        } else {
-          return null;
-        }
+        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]) : undefined);
+        this._triggerActionExecutedEvent(ApiEndpointAction.UPDATE, result);
+        return result;
       }
     );
   }
@@ -139,7 +181,11 @@ export class ApiEndpoint {
   public delete (id: any) {
     return this._action(
       this._http.delete(`${this._endpoint}/${id}`),
-      (data) => (this._entt ? EnTT.cast(data, { into: this._entt }) : data)
+      (data) => {
+        const result = (this._entt ? EnTT.cast(data, { into: this._entt }) : data);
+        this._triggerActionExecutedEvent(ApiEndpointAction.DELETE, result);
+        return result;
+      }
     );
   }
 
@@ -175,6 +221,59 @@ export class ApiEndpoint {
     );
   }
 
+  /**
+   * Triggers global and local action events
+   * @param action Executed action
+   * @param entt EnTT instance resulting from the action
+   */
+  private _triggerActionExecutedEvent (action: ApiEndpointAction, entt?: any) {
+    // Compose action descriptor
+    const e = new ApiEndpointActionEvent(action, entt, this._enttToString);
+    // Trigger local event
+    if (!e._preventedDefault) { this.action.emit(e); }
+    // Trigger global event
+    if (!e._preventedDefault) { ApiEndpoint.action.emit(e); }
+  }
+
+}
+
+/**
+ * Holds description of an executed endpoint action
+ */
+export class ApiEndpointActionEvent {
+
+  /**
+   * Holds .preventDefault() method having been called status
+   */
+  public _preventedDefault = false;
+
+  constructor (action: ApiEndpointAction, entt?: any, enttToString?: ((entt: any) => string)) {
+    // Store properties
+    this.action = action;
+    this.entt = entt;
+    this.enttToString = enttToString;
+  }
+
+  /**
+   * Executed action
+   */
+  public action: ApiEndpointAction;
+  /**
+   * EnTT instance resulting from the action
+   */
+  public entt: any;
+  /**
+   * Function converting the EnTT instance into a string representation
+   */
+  public enttToString: (entt: any) => string
+
+  /**
+   * Prevents the event from continuing execution (usually used in local event handler to prevent global from triggering)
+   */
+  public preventDefault () {
+    this._preventedDefault = true;
+  }
+
 }
 
 /**
@@ -189,10 +288,11 @@ export class ApiEndpointFactory {
    * Creates a new api endpoint instance
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
+   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
-  public create (endpoint: string, entt?: (new() => EnTT)) {
+  public create (endpoint: string, entt?: (new() => EnTT), { enttToString = undefined as (entt: EnTT) => string } = {}) {
     const service = new ApiEndpoint(this._http);
-    service.bind(endpoint, entt);
+    service.bind(endpoint, entt, { enttToString });
     return service;
   }
 }

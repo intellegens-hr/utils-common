@@ -104,7 +104,7 @@ export class ApiEndpointBaseAdapter {
     this._entt = entt;
     this._enttToString = enttToString;
     // Bind to endpoint
-    this._endpoint.bind(endpoint, entt);
+    this._endpoint.bind(endpoint, entt, { enttToString });
     // Reset request
     this._req = new ApiSearchRequestModel();
     this._req.limit = this._config.defaultPageLength;
