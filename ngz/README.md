@@ -114,24 +114,24 @@ class MyComponent {
     });
 
     // Get list of all resources from endpoint
-    const dataRaw: object[]             = await this.endpointRaw.list(),
+    const dataRaw: object[]         = await this.endpointRaw.list(),
           dataEnTT: ResourceModel[] = await this.endpointEnTT.list();
 
     // Search, order and paginate resources from endpoint
-    const searchReq                     = new ApiSearchRequestModel(), // Edit properties to set search
-          dataRaw: object[]             = await this.endpointRaw.search(searchReq),
+    const searchReq                 = new ApiSearchRequestModel(), // Edit properties to set search
+          dataRaw: object[]         = await this.endpointRaw.search(searchReq),
           dataEnTT: ResourceModel[] = await this.endpointEnTT.search(searchReq);
 
     // Get single resource
-    const dataRaw: object               = await this.endpointRaw.get(id),
+    const dataRaw: object           = await this.endpointRaw.get(id),
           dataEnTT: ResourceModel   = await this.endpointEnTT.get(id);
 
     // Create single resource
-    const dataRaw: object               = await this.endpointRaw.create(resource),
+    const dataRaw: object           = await this.endpointRaw.create(resource),
           dataEnTT: ResourceModel   = await this.endpointEnTT.create(resource);
 
     // Update single resource
-    const dataRaw: object               = await this.endpointRaw.update(resource.id, resource),
+    const dataRaw: object           = await this.endpointRaw.update(resource.id, resource),
           dataEnTT: ResourceModel   = await this.endpointEnTT.update(resource.id, resource);
 
     // Delete single resource

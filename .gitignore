@@ -10,3 +10,4 @@
 
 # Ignore local files
 *.local.*
+/.vscode

@@ -1,7 +1,11 @@
-﻿using Intellegens.Commons.Search;
+﻿using Intellegens.Commons.Search.Models;
 
 namespace Intellegens.Commons.Results
 {
+    /// <summary>
+    /// Used by endpoints which provide data pagination
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class ApiGridResult<T> : ApiResult<T>
         where T : class
     {

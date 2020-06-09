@@ -69,18 +69,20 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of HTTP response content
    * @throws Errors returned by the API
    */
   public get (
     path: string,
     {
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
-    return this.request('GET', path, { query, headers, options });
+    return this.request('GET', path, { query, headers, options, circumvent });
   }
 
   /**
@@ -90,6 +92,7 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of HTTP response data
    * @throws Errors returned by the API
    */
@@ -97,12 +100,13 @@ export class HttpService {
     path: string,
     body: (ApiRequestModel | object),
     {
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
-    return this.request('POST', path, { body, query, headers, options });
+    return this.request('POST', path, { body, query, headers, options, circumvent });
   }
 
   /**
@@ -112,6 +116,7 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of HTTP response data
    * @throws Errors returned by the API
    */
@@ -119,12 +124,13 @@ export class HttpService {
     path: string,
     body: (ApiRequestModel | object),
     {
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
-    return this.request('PUT', path, { body, query, headers, options });
+    return this.request('PUT', path, { body, query, headers, options, circumvent });
   }
 
   /**
@@ -133,18 +139,20 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of HTTP response content
    * @throws Errors returned by the API
    */
   public delete (
     path: string,
     {
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
-    return this.request('DELETE', path, { query, headers, options });
+    return this.request('DELETE', path, { query, headers, options, circumvent });
   }
 
   /**
@@ -155,6 +163,7 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of Extracted HTTP response data
    * @throws Errors returned by the API
    */
@@ -162,14 +171,15 @@ export class HttpService {
     method: string,
     path: string,
     {
-      body    = undefined as (ApiRequestModel | object),
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      body       = undefined as (ApiRequestModel | object),
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
     // Send HTTP request
-    const req = this._request<ApiResponseModelType>(method, path, { body, query, headers, options });
+    const req = this._request<ApiResponseModelType>(method, path, { body, query, headers, options, circumvent });
     // Create and return HTTP request promise instance
     return new HttpRequestPromise(
       // Handle HTTP request promise
@@ -196,6 +206,7 @@ export class HttpService {
    * @param query URI query parameters hashmap
    * @param headers HTTP headers to set for the request
    * @param options Additional NG HTTP service options
+   * @param circumvent Circumvention rules of HTTP interceptors for a particular request
    * @returns Promise of HTTP response
    * @throws Errors returned by the API
    */
@@ -203,10 +214,11 @@ export class HttpService {
     method: string,
     path: string,
     {
-      body    = undefined as (ApiRequestModel | object),
-      query   = {} as EnTT | object,
-      headers = {} as object,
-      options = {} as object
+      body       = undefined as (ApiRequestModel | object),
+      query      = {} as EnTT | object,
+      headers    = {} as object,
+      options    = {} as object,
+      circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
   ): HttpRequestPromise<any> {
     try {
@@ -215,7 +227,7 @@ export class HttpService {
       const reqParams = {
         method,
         url:     `${HttpService._url}/${path.length && path[0] === '/' ? path.substr(1) : path}`,
-        body:    (body ? (body instanceof EnTT ? body.serialize() : body) : undefined),
+        body:    (body ? (body instanceof EnTT ? (body as EnTT).serialize() : body) : undefined),
         headers: {
           'Content-Type': 'application/json;charset=UTF-8',
           ...headers
@@ -231,7 +243,7 @@ export class HttpService {
           body:    reqParams.body,
           headers: new HttpHeaders(reqParams.headers),
           params:  (Object.entries(reqParams.query) as unknown as string[])
-            .reduce((params, [key, value]) => params.set(key, value), new HttpParams()),
+            .reduce((params, [key, value]) => params.set(key, value), new HttpRequestParams(circumvent)),
           ...options
         }
       );
@@ -283,6 +295,17 @@ export class HttpService {
 export class HttpServiceError {
   constructor (errors) { this.codes = errors.map(err => err.code); }
   public codes: string[];
+}
+
+/**
+ * Extended HTTP request parameters
+ */
+export class HttpRequestParams extends HttpParams {
+  constructor (
+    public circumvent: HttpInterceptorsCircumventionDefinition
+  ) {
+    super();
+  }
 }
 
 /**
@@ -378,24 +401,16 @@ export class HttpRequestInfo {
 }
 
 /**
- * Intercepts HTTP requests and surfaces API errors
+ * Define circumvention rules of HTTP interceptors for a particular request
  */
-@Injectable()
-export class HttpErrorInterceptor implements HttpInterceptor {
-
-  public intercept (req: HttpRequest<any>, next: HttpHandler) {
-
-    // Intercept errors
-    return next.handle(req)
-      .pipe(
-        map((event: HttpEvent<any>) => event),
-        catchError((err: HttpErrorResponse) => {
-          HttpService.error.emit(err);
-          return throwError(err);
-        })
-      );
-
-  }
+export class HttpInterceptorsCircumventionDefinition {
+  constructor (
+    public all = false,
+    public allOutgoing = false,
+    public allIncomming = false,
+    public httpAuthTokenInjector = false,
+    public httpErrorInterceptor = false,
+  ) {}
 }
 
 /**
@@ -405,6 +420,15 @@ export class HttpErrorInterceptor implements HttpInterceptor {
 export class HttpAuthTokenInjector implements HttpInterceptor {
 
   public intercept (req: HttpRequest<any>, next: HttpHandler) {
+
+    // Check if being circumvented
+    if (req.params instanceof HttpRequestParams) {
+      const params = (req.params as HttpRequestParams)
+      if (params?.circumvent?.all || params?.circumvent?.allOutgoing || params?.circumvent?.httpAuthTokenInjector) {
+        // Continue processing unmodified request
+        return next.handle(req);
+      }
+    }
 
     // Get authentication token
     const token = HttpService.getAuthToken();
@@ -424,3 +448,32 @@ export class HttpAuthTokenInjector implements HttpInterceptor {
 
 }
 
+/**
+ * Intercepts HTTP requests and surfaces API errors
+ */
+@Injectable()
+export class HttpErrorInterceptor implements HttpInterceptor {
+
+  public intercept (req: HttpRequest<any>, next: HttpHandler) {
+
+    // Check if being circumvented
+    if (req.params instanceof HttpRequestParams) {
+      const params = (req.params as HttpRequestParams)
+      if (params?.circumvent?.all || params?.circumvent?.allIncomming || params?.circumvent?.httpErrorInterceptor) {
+        // Continue processing unmodified request
+        return next.handle(req);
+      }
+    }
+
+    // Intercept errors
+    return next.handle(req)
+      .pipe(
+        map((event: HttpEvent<any>) => event),
+        catchError((err: HttpErrorResponse) => {
+          HttpService.error.emit(err);
+          return throwError(err);
+        })
+      );
+
+  }
+}

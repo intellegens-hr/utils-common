@@ -2,6 +2,10 @@
 
 namespace Intellegens.Commons.Rest
 {
+    /// <summary>
+    /// API REST result class
+    /// Each API call should at least return status code and error messages (if any)
+    /// </summary>
     public class RestResult
     {
         public RestResult()
@@ -29,7 +33,14 @@ namespace Intellegens.Commons.Rest
             ResponseData = data;
         }
 
-        public string ResponseDataRaw { get;set;}
+        /// <summary>
+        /// Raw data - this should be set even if JSON deserialization failed
+        /// </summary>
+        public string ResponseDataRaw { get; set; }
+
+        /// <summary>
+        /// Deserialized ResponseDataRaw property
+        /// </summary>
         public T ResponseData { get; set; }
     }
 }

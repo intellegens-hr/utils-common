@@ -1,8 +1,6 @@
-using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -18,10 +16,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), "' SELECT 1 FROM users; "),
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), "\" SELECT 1 FROM users; "),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), "' SELECT 1 FROM users; "),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), "\" SELECT 1 FROM users; "),
                 }
             };
 
@@ -37,10 +35,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), "' OR 1 = 1 "),
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), "\" OR 1 = 1 "),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), "' OR 1 = 1 "),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), "\" OR 1 = 1 "),
                 }
             };
 
@@ -56,15 +54,14 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), "?(/&%$#$%&/()(/&%$#$%&/("),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), "?(/&%$#$%&/()(/&%$#$%&/("),
                 }
             };
 
             var data = await searchService.Search(query, searchRequest);
             Assert.True(data.Count == 0);
         }
-
     }
 }

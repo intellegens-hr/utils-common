@@ -10,7 +10,7 @@ import { ApiEndpointFactory } from '../../';
 import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 // Import data models
-import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../../../../data';
+import { ApiSearchRequestOrderModel, ApiSearchRequestCriteriaModel, LogicOperators, Operators } from '../../../../../data';
 
 /**
  * API Endpoint to Autocomplete component adapter (internal implementation)
@@ -36,7 +36,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
   /**
    * Holds array of IDs, or a function returning an array of IDs to exclude from results
    */
-  protected _excludeIds = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] });
+  protected _excludeIds = {} as { [key: string]: string[] } | (() => { [key: string]: string[] });
   /**
    * Gets array of IDs, or a function returning an array of IDs to exclude from results
    */
@@ -78,7 +78,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // Bind to endpoint
@@ -96,29 +96,39 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
   protected _processChanged (value: any) {
     // Update require filters
     const excludedIds = (this._excludeIds ? (this._excludeIds instanceof Function ? this._excludeIds() : this._excludeIds) : {});
+    this._req.criteria = [];
+
+    // Add criteria for excluding ids
     for (const key of Object.keys(excludedIds)) {
-      this._req.filters = excludedIds[key].map(excludedId => {
-        const filter = new ApiSearchRequestFilterModel();
-        filter.key = key;
-        filter.type = ApiSearchRequestFilterModel.Type.ExactMatch;
-        filter.comparisonType = ApiSearchRequestFilterModel.ComparisonType.Negated;
-        filter.values = [excludedId]
-        return filter;
-      });
+      // for NOT-IN given entity must NOT match any of the values provided so following logic is used:
+      // NOT ((key == value1) OR (key == value2))
+      const filter = new ApiSearchRequestCriteriaModel();
+      filter.keys = [key];
+      filter.values = excludedIds[key];
+      filter.operator = Operators.EQUALS;
+      filter.valuesLogic = LogicOperators.ANY;
+      filter.negate = true;
+
+      this._req.criteria.push(filter);
     }
     // Update request search
+    // Construct criteria which will contain all search condition
     if (value) {
-      this._req.search = this._searchBy.map(searchBy => {
-        const search = new ApiSearchRequestFilterModel();
-        search.key = searchBy;
+      const searchCriteria = new ApiSearchRequestCriteriaModel();
+      searchCriteria.criteriaLogic = LogicOperators.ANY;
+
+      searchCriteria.criteria = this._searchBy.map(searchBy => {
+        const search = new ApiSearchRequestCriteriaModel();
+        search.keys = [searchBy];
         search.values = [value, ...(value.indexOf(' ') !== -1 ? value.split(' ') : [])]
         return search;
       });
+      this._req.criteria.push(searchCriteria);
     } else {
-      this._req.search = [];
+      this._req.criteria = [];
     }
     // Update request ordering
-    this._req.ordering = this._orderBy.map(orderBy => {
+    this._req.order = this._orderBy.map(orderBy => {
       const ordering = new ApiSearchRequestOrderModel();
       ordering.key = (orderBy.startsWith('!') ? orderBy.substr(1) : orderBy);
       ordering.ascending = !orderBy.startsWith('!');
@@ -190,7 +200,7 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // (Re)Create endpoint instance
@@ -246,7 +256,7 @@ export class ApiEndpointToAutocompleteAdapterFactory {
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);

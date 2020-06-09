@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -18,42 +19,54 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.TestingSessionId), entities[0].TestingSessionId),
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities[0].TestingSessionId),
 
                     // NOT IN
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Values = new List<string>{ entities[2].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Criteria = new List<SearchCriteria>
+                        {
+                            new SearchCriteria
+                            {
+                                Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                                Values = new List<string>{ entities[2].Id.ToString() },
+                                Operator = Operators.EQUALS
+                            },
+                            new SearchCriteria
+                            {
+                                Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                                Values = new List<string>{ entities[3].Id.ToString() },
+                                Operator = Operators.EQUALS
+                            },
+                        },
+                        Negate = true,
+                        CriteriaLogic = LogicOperators.ALL
                     },
-                    new SearchFilter
+
+                    // IN values
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Values = new List<string>{ entities[3].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Criteria = new List<SearchCriteria>
+                        {
+                            new SearchCriteria
+                            {
+                                Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                                Values = new List<string>{ entities[0].Id.ToString() },
+                                Operator = Operators.EQUALS
+                            },
+                            new SearchCriteria
+                            {
+                                Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                                Values = new List<string>{ entities[1].Id.ToString() },
+                                Operator = Operators.EQUALS
+                            },
+                        },
+                        CriteriaLogic = LogicOperators.ANY
                     }
                 },
-                Search = new List<SearchFilter>
-                {
-                    // IN values
-                    new SearchFilter
-                    {
-                        Key = nameof(SearchTestEntity.Id),
-                        Values = new List<string>{ entities[0].Id.ToString()},
-                        Type = FilterMatchTypes.EXACT_MATCH
-                    },
-                    new SearchFilter
-                    {
-                        Key = nameof(SearchTestEntity.Id),
-                        Values = new List<string>{ entities[1].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH
-                    }
-                }
+                CriteriaLogic = LogicOperators.ALL
             };
 
             var data = await searchService.Search(query, searchRequest);
@@ -69,22 +82,23 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = Operators.EQUALS,
                         Values = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() },
                     },
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Operator = Operators.EQUALS,
+                        Negate = true
                     }
-                }
+                },
+                CriteriaLogic = LogicOperators.ANY
             };
 
             var data = await searchService.Search(query, searchRequest);
@@ -100,14 +114,14 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = Operators.EQUALS,
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Negate = true
                     }
                 }
             };
@@ -125,12 +139,12 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = Operators.EQUALS,
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
                     }
                 }

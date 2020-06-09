@@ -5,8 +5,9 @@
 import { Subject, interval } from 'rxjs';
 import { debounce } from 'rxjs/operators';
 import { EnTT } from '@ofzza/entt-rxjs';
-import {  ApiEndpoint } from '../../';
+import { ApiEndpoint } from '../../';
 import { HttpRequestPromise } from '../../../Http'
+import { EventEmitter, Output } from '@angular/core';
 
 // Import data models
 import { ApiSearchRequestModel } from '../../../../../data';
@@ -61,7 +62,7 @@ export class ApiEndpointBaseAdapter {
   /**
    * Holds lats HTTP search request promise to be sent
    */
-  protected _searchReqPromise: HttpRequestPromise<any>;
+  protected _searchReqPromise: HttpRequestPromise<ApiSearchRequestModel>;
 
   /**
    * Observable subject triggered by change event, used to debounce change event handling
@@ -77,6 +78,11 @@ export class ApiEndpointBaseAdapter {
    * Holds total number of records found by the last search
    */
   protected _dataLength = 0;
+
+  /**
+   * Event fired before search request is fully formed allowing for changes to be made
+   */
+  public beforeSearch: EventEmitter<ApiSearchRequestModel> = new EventEmitter();
 
   constructor () {
     // Set up debounced change event handling
@@ -117,6 +123,9 @@ export class ApiEndpointBaseAdapter {
 
         // Check if running locally
         if (!this._config.preload) {
+
+          // Emit search request so other components can modify data before sending (if needed)
+          this.beforeSearch.emit(this._req);
 
           // Run search
           const res = await (this._searchReqPromise = this._endpoint.search(this._req));

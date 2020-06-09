@@ -13,7 +13,7 @@ import { HttpRequestPromise } from '../../../Http'
 import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 // Import data models
-import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../../../../data';
+import { ApiSearchRequestOrderModel, ApiSearchRequestCriteriaModel } from '../../../../../data';
 
 /**
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component (internal implementation)
@@ -45,25 +45,24 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
       // Update search request
       this._req.offset = (e.state.pageIndex * e.state.pageLength) || 0;
       this._req.limit  = e.state.pageLength;
-      this._req.ordering = [];
+      this._req.order = [];
       const order = new ApiSearchRequestOrderModel();
       order.key = e.state.orderingField;
       order.ascending = e.state.orderingAscDirection;
-      this._req.ordering.push(order);
-      this._req.filters = [];
+      this._req.order.push(order);
+      this._req.criteria = [];
       for (const filterKey in e.state.filters) {
         if (e.state.filters.hasOwnProperty(filterKey) && e.state.filters[filterKey]) {
-          const filter = new ApiSearchRequestFilterModel();
-          filter.key = filterKey;
+          const filter = new ApiSearchRequestCriteriaModel();
+          filter.keys = [filterKey];
           filter.values = [e.state.filters[filterKey]];
-          this._req.filters.push(filter);
+          this._req.criteria.push(filter);
         }
       }
       // (Re)Run search
       this._search();
     }
   }
-
 }
 
 /**

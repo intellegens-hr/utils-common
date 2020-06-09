@@ -1,13 +1,16 @@
-﻿using Intellegens.Commons.Db.BaseEntities;
-using Intellegens.Commons.Db.Contracts;
+﻿using Intellegens.Commons.Db.Contracts;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Db
 {
+    /// <summary>
+    /// Base DbContext class which implements entity change tracking features.
+    /// Basicly, it overrides SaveChanges methods to call "SetEntityTrackingData" extension method from "TrackingDbContextExtensions"
+    /// before saving changes to database.
+    /// </summary>
+    /// <typeparam name="TKey">Id type</typeparam>
     public abstract class TrackingDbContextAbstract<TKey> : DbContext
     {
         protected IUserData<TKey> userData;

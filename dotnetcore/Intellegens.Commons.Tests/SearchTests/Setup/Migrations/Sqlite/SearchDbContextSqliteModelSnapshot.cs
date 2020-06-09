@@ -14,7 +14,7 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup.Migrations.Sqlite
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.4");
+                .HasAnnotation("ProductVersion", "3.1.5");
 
             modelBuilder.Entity("Intellegens.Commons.Tests.SearchTests.Setup.SearchTestChildEntity", b =>
                 {
@@ -26,6 +26,9 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup.Migrations.Sqlite
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TestingSessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

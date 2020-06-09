@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -18,11 +19,11 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
                 },
-                Ordering = new List<SearchOrder>
+                Order = new List<SearchOrder>
                 {
                     SearchOrder.AsDescending(nameof(SearchTestEntity.Numeric))
                 }
@@ -43,11 +44,11 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 20,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestChildEntity.TestingSessionId), entity.TestingSessionId)
+                    SearchCriteria.PartialMatch(nameof(SearchTestChildEntity.TestingSessionId), entity.TestingSessionId)
                 },
-                Ordering = new List<SearchOrder>
+                Order = new List<SearchOrder>
                 {
                     SearchOrder.AsDescending("Parent.Id")
                 }
@@ -71,11 +72,11 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 100,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
                 },
-                Ordering = new List<SearchOrder>
+                Order = new List<SearchOrder>
                 {
                     SearchOrder.AsAscending("Sibling.Id")
                 }
@@ -85,6 +86,33 @@ namespace Intellegens.Commons.Tests.SearchTests
 
             Assert.NotNull(data[0].SiblingId);
             Assert.Null(data[1].SiblingId);
+        }
+
+        [Fact]
+        public virtual async Task Ordering_nested_on_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(10);
+
+            var entity = await query.FirstAsync();
+            await dbContext.SaveChangesAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 100,
+                Criteria = new List<SearchCriteria>
+                {
+                    SearchCriteria.PartialMatch($"{nameof(SearchTestEntity.Children)}.TestingSessionId", entity.TestingSessionId)
+                },
+                Order = new List<SearchOrder>
+                {
+                    SearchOrder.AsAscending($"{nameof(SearchTestEntity.Children)}.Parent.Date")
+                }
+            };
+
+            var data = await searchService.Search(dbContext.SearchTestEntities, searchRequest);
+
+            for (int i = 1; i < data.Count; i++)
+                Assert.True(data[i - 1].Date <= data[i].Date);
         }
     }
 }

@@ -1,5 +1,6 @@
 using Bogus;
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -30,6 +31,7 @@ namespace Intellegens.Commons.Tests.SearchTests
         {
             return new Faker<SearchTestChildEntity>()
                 .RuleFor(u => u.TestingSessionId, f => testingSessionId)
+                .RuleFor(u => u.Text, f => f.Lorem.Paragraph())
                 .RuleFor(u => u.ParentId, f => parentId);
         }
 

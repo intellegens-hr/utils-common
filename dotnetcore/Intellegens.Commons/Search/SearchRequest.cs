@@ -1,57 +1,67 @@
-﻿using System.Collections.Generic;
+﻿//using Intellegens.Commons.Search.Models;
+//using System.Collections.Generic;
 
-namespace Intellegens.Commons.Search
-{
-    public enum FilterMatchTypes { EXACT_MATCH, PARTIAL_MATCH, WILDCARD, REGEX }
+//namespace Intellegens.Commons.Search
+//{
+//    /// <summary>
+//    /// Used to specify filter, search and order parameteres when using GenericSearchService
+//    /// </summary>
+//    public class SearchRequest
+//    {
+//        /// <summary>
+//        /// Number of record to skip
+//        /// </summary>
+//        public int Offset { get; set; } = 0;
 
-    public enum ComparisonTypes { EQUAL = 0, NOT_EQUAL = 1 }
+//        /// <summary>
+//        /// Number of records to return
+//        /// </summary>
+//        public int Limit { get; set; } = 10;
 
-    public class SearchRequest
-    {
-        public int Offset { get; set; } = 0; // Starting record
-        public int Limit { get; set; } = 10; // Number of records to return
+//        /// <summary>
+//        /// Filters have AND operator between them
+//        /// </summary>
+//        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>();
 
-        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>(); // AND
-        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); // (OR)
-        public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
-    }
+//        /// <summary>
+//        /// Search have OR operator between them
+//        /// </summary>
+//        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>();
 
-    public class SearchFilter
-    {
-        public static SearchFilter PartialMatch(string key, string value)
-            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.PARTIAL_MATCH };
+//        /// <summary>
+//        /// Sort definition, currently only 1 order is possible, others are ignored
+//        /// </summary>
+//        public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
+//    }
 
-        public static SearchFilter ExactMatch(string key, string value)
-            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.EXACT_MATCH };
+//    public class SearchFilter
+//    {
+//        public static SearchFilter PartialMatch(string key, string value)
+//            => new SearchFilter { Keys = new List<string> { key }, Values = new List<string> { value }, Operator = SearchOperators.STRING_CONTAINS };
 
-        public string Key { get; set; }
+//        public static SearchFilter Equal(string key, string value)
+//            => new SearchFilter { Keys = new List<string> { key }, Values = new List<string> { value }, Operator = SearchOperators.EQUALS };
 
-        //For future's sake, will define type of filtering
-        public FilterMatchTypes Type { get; set; } = FilterMatchTypes.PARTIAL_MATCH;
+//        /// <summary>
+//        /// List of keys (properties) to match
+//        /// </summary>
+//        public List<string> Keys { get; set; }
 
-        public ComparisonTypes ComparisonType { get; set; } = ComparisonTypes.EQUAL;
+//        /// <summary>
+//        /// Filter operator
+//        /// </summary>
+//        public SearchOperators Operator { get; set; } = SearchOperators.STRING_CONTAINS;
 
-        // search value(s)
-        public List<string> Values { get; set; }
-    }
+//        /// <summary>
+//        /// Should entire filter expression be negated
+//        /// </summary>
+//        public bool NegateExpression { get; set; } = false;
 
-    public class SearchOrder
-    {
-        public static SearchOrder AsAscending(string fieldName)
-            => new SearchOrder
-            {
-                Ascending = true,
-                Key = fieldName
-            };
+//        /// <summary>
+//        /// Values to match
+//        /// </summary>
+//        public List<string> Values { get; set; }
+//    }
 
-        public static SearchOrder AsDescending(string fieldName)
-            => new SearchOrder
-            {
-                Ascending = false,
-                Key = fieldName
-            };
 
-        public string Key { get; set; }
-        public bool Ascending { get; set; } = true;
-    }
-}
+//}

@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -19,9 +20,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2))
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2))
                 }
             };
 
@@ -38,9 +39,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.Text), entity.Text)
+                    SearchCriteria.Equal(nameof(SearchTestEntity.Text), entity.Text)
                 }
             };
 
@@ -58,9 +59,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.ExactMatch("Parent.TestingSessionId", entity.TestingSessionId)
+                    SearchCriteria.Equal("Parent.TestingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -82,9 +83,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.ExactMatch("parent.testingSessionId", entity.TestingSessionId)
+                    SearchCriteria.Equal("parent.testingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -97,6 +98,54 @@ namespace Intellegens.Commons.Tests.SearchTests
         }
 
         [Fact]
+        public async Task Exact_text_filtering_by_nested_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Criteria = new List<SearchCriteria>
+                {
+                    SearchCriteria.Equal("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchCriteria.Equal("Numeric", entity.Numeric.ToString())
+                }
+            };
+
+            var querySearch = dbContext.SearchTestEntities
+                .Include(x => x.Children)
+                .Where(x => x.TestingSessionId == entity.TestingSessionId);
+
+            var data = await searchService.Search(querySearch, searchRequest);
+            Assert.True(data.Count >= 1);
+        }
+
+        [Fact]
+        public async Task Partial_match_text_filtering_by_nested_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Criteria = new List<SearchCriteria>
+                {
+                    SearchCriteria.PartialMatch("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchCriteria.PartialMatch("Numeric", entity.Numeric.ToString())
+                }
+            };
+
+            var querySearch = dbContext.SearchTestEntities
+                .Include(x => x.Children)
+                .Where(x => x.TestingSessionId == entity.TestingSessionId);
+
+            var data = await searchService.Search(querySearch, searchRequest);
+            Assert.True(data.Count >= 1);
+        }
+
+        [Fact]
         public async Task Null_params_should_be_handled_work()
         {
             var query = await GenerateTestDataAndFilterQuery(5);
@@ -106,11 +155,11 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Key = "Parent.TestingSessionId",
+                        Keys = new List<string>{ "Parent.TestingSessionId" },
                         Values = null
                     }
                 }
