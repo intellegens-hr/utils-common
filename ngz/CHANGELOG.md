@@ -1,6 +1,11 @@
 #### v1.0.8
 
-...
+- `ApiEndpoint` now exposes a `toString()` method, same as adapters, for converting EnTT instances into presentable strings representation
+- `ApiEndpointToGridAdapter` no longer loads data as soon as bound to endpoint
+- `ApiEndpointToAutocompleteAdapter` now exposes read-only properties `searchBy`, `orderBy` and `excludeIds`
+- `ApiEndpointToAutocompleteAdapter` now splits search string and also searches by each split part
+- `ApiEndpointFactory.create()` can now be run with no arguments, delaying binding for after construction of endpoint instance 
+- Implemented `ApiEndpointToCrudComponentAdapter` adapter, for usage when building typical(ish) CRUD components
 
 #### v1.0.7
 
@@ -15,7 +20,7 @@
 - `HttpRequestPromise<T>` returned from `HttpService` now contains a new `.info` property describing the request being handled
 - `HttpRequestPromise<T>` returned from `ApiEndpoint` now contains a new `.info` property describing the request being handled
 - Updated `ApiSearchRequestModel` with separated filtering/search functionality and both `ApiEndpointToGridAdapter` and `ApiEndpointToAutocompleteAdapter` to match
-- `ApiEndpointToGridAdapter` and `ApiEndpointToAutocompleteAdapter` now accept and expose a "toString" function for converting EnTT instances into presentable string representation
+- `ApiEndpointToGridAdapter` and `ApiEndpointToAutocompleteAdapter` now accept and expose a "toString" method for converting EnTT instances into presentable string representation
 - `ApiEndpoint` now uses PUT instead of POST for updates
 
 #### v1.0.3

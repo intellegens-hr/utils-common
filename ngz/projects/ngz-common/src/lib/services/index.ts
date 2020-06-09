@@ -12,11 +12,11 @@ const modules = [
 export * from './api';
 import {
   HttpService,
-  ApiEndpointFactory, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
+  ApiEndpointFactory, ApiEndpointToCrudComponentAdapter, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
 } from './api';
 const providers = [
   HttpService,
-  ApiEndpointFactory, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
+  ApiEndpointFactory, ApiEndpointToCrudComponentAdapter, ApiEndpointToGridAdapterFactory, ApiEndpointToAutocompleteAdapterFactory
 ];
 
 /**

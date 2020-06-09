@@ -24,19 +24,13 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   protected _bind (
     endpoint: string,
-    entt?: (new() => EnTT),
-    {
-      enttToString = undefined as (entt: EnTT) => string
-    } = {}
+    entt?: (new() => EnTT)
   ) {
     // Bind to endpoint
-    super._bind(endpoint, entt, { enttToString });
-    // Store properties
-    this._enttToString = enttToString;
+    super._bind(endpoint, entt);
   }
 
   /**
@@ -150,21 +144,15 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
    * Binds service instance to a particular endpoint
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public bind (
     endpoint: string,
-    entt?: (new() => EnTT),
-    {
-      enttToString = undefined as (entt: EnTT) => string
-    } = {}
+    entt?: (new() => EnTT)
   ) {
     // (Re)Create endpoint instance
-    this._endpoint = this._endpointFactory.create(endpoint, entt, { enttToString });
+    this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { enttToString });
-    // Search (after timeout to allow additional configuration)
-    setTimeout(() => { this._search(); });
+    this._bind(endpoint, entt);
   }
 
   /**
@@ -182,14 +170,6 @@ export class ApiEndpointToGridAdapter extends ApiEndpointToGridAdapterInternal {
     this._changed(e);
   }
 
-  /**
-   * Converts EnTT instance to a representative string
-   * @param instance EnTT instance to convert to string
-   */
-  public toString (instance: EnTT) {
-    return (this._enttToString ? this._enttToString(instance) : instance);
-  }
-
 }
 
 /**
@@ -204,19 +184,13 @@ export class ApiEndpointToGridAdapterFactory {
    * Creates a new adapter instance
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public create (
     endpoint: string,
-    entt?: (new() => EnTT),
-    {
-      enttToString = undefined as (entt: EnTT) => string
-    } = {}
+    entt?: (new() => EnTT)
   ) {
     const adapter = new ApiEndpointToGridAdapter(this._endpointFactory);
-    adapter.bind(endpoint, entt, {
-      enttToString: (enttToString || entt?.toString || undefined)
-    });
+    adapter.bind(endpoint, entt);
     return adapter;
   }
 }

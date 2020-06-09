@@ -22,13 +22,25 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    */
   protected _searchBy = [] as string[];
   /**
+   * Gets names of properties to filter by
+   */
+  public get searchBy () { return this._searchBy; }
+  /**
    * Holds names of properties to order by (starting with a '!' character if ordering descending)
    */
   protected _orderBy = [] as string[];
   /**
+   * Gets names of properties to order by (starting with a '!' character if ordering descending)
+   */
+  public get orderBy () { return this._orderBy; }
+  /**
    * Holds array of IDs, or a function returning an array of IDs to exclude from results
    */
   protected _excludeIds = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] });
+  /**
+   * Gets array of IDs, or a function returning an array of IDs to exclude from results
+   */
+  public get excludeIds () { return this._excludeIds; }
 
   /**
    * Holds items found by the last search
@@ -59,7 +71,6 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
    * @param searchBy Names of properties to be filter by
    * @param orderBy Names of properties to be order by (starting with a '!' character if ordering descending)
    * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   protected _bind (
     endpoint: string,
@@ -67,17 +78,15 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] }),
-      enttToString = undefined as (entt: EnTT) => string
+      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // Bind to endpoint
-    super._bind(endpoint, entt, { enttToString });
+    super._bind(endpoint, entt);
     // Store properties
     this._searchBy = searchBy;
     this._orderBy = orderBy;
     this._excludeIds = excludeIds;
-    this._enttToString = enttToString;
   }
 
   /**
@@ -102,7 +111,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
       this._req.search = this._searchBy.map(searchBy => {
         const search = new ApiSearchRequestFilterModel();
         search.key = searchBy;
-        search.values = [value]
+        search.values = [value, ...(value.indexOf(' ') !== -1 ? value.split(' ') : [])]
         return search;
       });
     } else {
@@ -174,7 +183,6 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
    * @param searchBy Names of properties to search by
    * @param orderBy Names of properties to search by (starting with a '!' character if ordering descending)
    * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public bind (
     endpoint: string,
@@ -182,14 +190,13 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] }),
-      enttToString = undefined as (entt: EnTT) => string
+      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // (Re)Create endpoint instance
-    this._endpoint = this._endpointFactory.create(endpoint, entt, { enttToString });
+    this._endpoint = this._endpointFactory.create(endpoint, entt);
     // Bind to endpoint
-    this._bind(endpoint, entt, { searchBy, orderBy, excludeIds, enttToString });
+    this._bind(endpoint, entt, { searchBy, orderBy, excludeIds });
   }
 
   /**
@@ -215,14 +222,6 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
     this._changed(value);
   }
 
-  /**
-   * Converts EnTT instance to a representative string
-   * @param instance EnTT instance to convert to string
-   */
-  public toString (instance: EnTT) {
-    return (this._enttToString ? this._enttToString(instance) : instance);
-  }
-
 }
 
 /**
@@ -240,7 +239,6 @@ export class ApiEndpointToAutocompleteAdapterFactory {
    * @param searchBy Names of properties to search by
    * @param orderBy (Optional) Names of properties to search by (starting with a '!' character if ordering descending)
    * @param excludeIds (Optional) Array of IDs, or a function returning an array of IDs to exclude from results
-   * @param enttToString (Optional) Function converting EnTT instance to a representative string
    */
   public create (
     endpoint: string,
@@ -248,16 +246,14 @@ export class ApiEndpointToAutocompleteAdapterFactory {
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] }),
-      enttToString = undefined as (entt: EnTT) => string
+      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);
     adapter.bind(endpoint, entt, {
       searchBy,
       orderBy: (orderBy || searchBy),
-      excludeIds,
-      enttToString: (enttToString || entt?.toString || undefined)
+      excludeIds
     });
     return adapter;
   }
