@@ -86,5 +86,32 @@ namespace Intellegens.Commons.Tests.SearchTests
             Assert.NotNull(data[0].SiblingId);
             Assert.Null(data[1].SiblingId);
         }
+
+        [Fact]
+        public virtual async Task Ordering_nested_on_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(10);
+
+            var entity = await query.FirstAsync();
+            await dbContext.SaveChangesAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 100,
+                Filters = new List<SearchFilter>
+                {
+                    SearchFilter.PartialMatch($"{nameof(SearchTestEntity.Children)}.TestingSessionId", entity.TestingSessionId)
+                },
+                Ordering = new List<SearchOrder>
+                {
+                    SearchOrder.AsAscending($"{nameof(SearchTestEntity.Children)}.Parent.Date")
+                }
+            };
+
+            var data = await searchService.Search(dbContext.SearchTestEntities, searchRequest);
+
+            for (int i=1; i<data.Count; i++)
+                Assert.True(data[i-1].Date <= data[i].Date);
+        }
     }
 }

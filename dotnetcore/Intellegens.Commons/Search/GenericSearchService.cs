@@ -25,19 +25,57 @@ namespace Intellegens.Commons.Search
         public Task<List<T>> Search(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => Search(sourceData.AsQueryable(), searchRequest);
 
-        public Task<List<T>> Search(IQueryable<T> sourceData, SearchRequest searchRequest)
+        /// <summary>
+        /// Build search query from SearchRequest object
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
+        public IQueryable<T> FilterQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
-            var queryFiltered = BuildSearchQuery(sourceData, searchRequest);
+            // get all defined filters/search
+            var filtersParsed = GetQueryPartsAndParams(searchRequest.Filters, LogicalOperators.AND);
+            var searchParsed = GetQueryPartsAndParams(searchRequest.Search, LogicalOperators.OR);
 
-            return queryFiltered
+            // combine all query parts into single
+            var filtersCombined = CombineQueryPartsAndArguments(filtersParsed, LogicalOperators.AND);
+            var searchCombined = CombineQueryPartsAndArguments(searchParsed, LogicalOperators.OR);
+
+            // combine filter and search
+            var queryParts = new List<(string expression, object[] arguments)> { filtersCombined, searchCombined };
+            var (expression, arguments) = CombineQueryPartsAndArguments(queryParts, LogicalOperators.AND);
+
+            if (!string.IsNullOrEmpty(expression))
+            {
+                // expression contains parameter placeholder defined in const parameterPlaceholder
+                // each query must contain parameters in following pattern: @0, @1, ...
+                // we need to replace placeholder with this kind of expression
+                var expressionParamParts = expression.Split(parameterPlaceholder);
+                var expressionWithParamsReplaced = expressionParamParts[0];
+
+                for (int i = 1; i < expressionParamParts.Length; i++)
+                {
+                    string expr = expressionParamParts[i];
+                    expressionWithParamsReplaced += $"@{i - 1}{expr}"; // parameters start from @0
+                }
+
+                sourceData = sourceData.Where(parsingConfig, expressionWithParamsReplaced, arguments);
+            }
+
+            sourceData = OrderQuery(sourceData, searchRequest);
+
+            return sourceData;
+        }
+
+        public Task<List<T>> Search(IQueryable<T> sourceData, SearchRequest searchRequest)
+            => FilterQuery(sourceData, searchRequest)
                 .Skip(searchRequest.Offset)
                 .Take(searchRequest.Limit)
                 .ToListAsync();
-        }
 
         public async Task<(int count, List<T> data)> SearchAndCount(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
-            var count = await BuildSearchQuery(sourceData, searchRequest).CountAsync();
+            var count = await FilterQuery(sourceData, searchRequest).CountAsync();
             var data = await Search(sourceData, searchRequest);
 
             return (count, data);
@@ -51,7 +89,7 @@ namespace Intellegens.Commons.Search
 
         public async Task<int> IndexOf(string keyColumn, IQueryable<T> sourceData, T entity, SearchRequest searchRequest)
         {
-            var query = BuildSearchQuery(sourceData, searchRequest);
+            var query = FilterQuery(sourceData, searchRequest);
 
             var properties = typeof(T).GetProperties();
 

@@ -1,9 +1,9 @@
 ﻿using Intellegens.Commons.Types;
+using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
-using System.Reflection;
 
 namespace Intellegens.Commons.Search
 {
@@ -30,7 +30,29 @@ namespace Intellegens.Commons.Search
         }
 
         private string GetOrderingString(SearchOrder order)
-            => $"(it.{order.Key}) {(order.Ascending ? "ascending" : "descending")}";
+        {
+            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(order.Key).ToList();
+            // this part will split entire path:
+            // if input path is a.b.c -> output will be it.a.b.c == value
+            // if input path is a.b[].c -> output will be it.a.b.Any(xyz1 => xyz1.c == value)
+            List<string> pathSegmentsResolved = new List<string>();
+            int bracketsOpen = 0;
+            for (int i = 0; i < propertyChainInfo.Count(); i++)
+            {
+                var (_, propertyInfo, isCollectionType) = propertyChainInfo[i];
+                if (isCollectionType)
+                {
+                    pathSegmentsResolved.Add($"{propertyInfo.Name}.Min(xyz{i} => xyz{i}");
+                    bracketsOpen++;
+                }
+                else
+                {
+                    pathSegmentsResolved.Add(propertyInfo.Name);
+                }
+            }
+
+            return $"it.{string.Join(".", pathSegmentsResolved)}{new String(')', bracketsOpen)} {(order.Ascending ? "ascending" : "descending")}";
+        }
 
         /// <summary>
         /// Dynamic Linq needs this to know where to look for EF functions
@@ -123,68 +145,198 @@ namespace Intellegens.Commons.Search
             return sourceData;
         }
 
+        private (bool isNullable, Type resolvedType) ResolveNullableType(Type type)
+        {
+            var returnType = type;
+
+            var nullableType = Nullable.GetUnderlyingType(returnType);
+            var isNullableType = false;
+            if (nullableType != null)
+            {
+                returnType = nullableType;
+                isNullableType = true;
+            }
+
+            // we'll have to check for NULL values, it's important to identify if type can be null
+            if (!isNullableType && returnType == typeof(string))
+                isNullableType = true;
+
+            return (isNullableType, returnType);
+        }
+
+        /// <summary>
+        /// Get exact match filter expression and parameter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
+        /// <returns></returns>
+        private (string expression, object parameter) GetExactMatchExpression(SearchFilter filter, string currentFilterStringValue)
+        {
+            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filter.Key).ToList();
+            var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
+
+            var (isNullable, resolvedType) = ResolveNullableType(filteredPropertyType);
+            filteredPropertyType = resolvedType;
+
+            (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, currentFilterStringValue);
+            if (filterHasInvalidValue)
+                throw new Exception("Invalid filter value!");
+
+            // this part will split entire path:
+            // if input path is a.b.c -> output will be it.a.b.c == value
+            // if input path is a.b[].c -> output will be it.a.b.Any(xyz1 => xyz1.c == value)
+            List<string> pathSegmentsResolved = new List<string>();
+            int bracketsOpen = 0;
+            for (int i = 0; i < propertyChainInfo.Count(); i++)
+            {
+                var (_, propertyInfo, isCollectionType) = propertyChainInfo[i];
+                if (isCollectionType)
+                {
+                    pathSegmentsResolved.Add($"{propertyInfo.Name}.Any(xyz{i} => xyz{i}");
+                    bracketsOpen++;
+                }
+                else
+                {
+                    pathSegmentsResolved.Add(propertyInfo.Name);
+                }
+            }
+
+            var expression = $"it.{string.Join(".", pathSegmentsResolved)} == {parameterPlaceholder} {new String(')', bracketsOpen)}";
+
+            return (expression, filterValue);
+        }
+
+        /// <summary>
+        /// Get exact match filter expression and parameter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
+        /// <returns></returns>
+        private (string expression, string parameter) GetPartialMatchExpression(SearchFilter filter, string currentFilterStringValue)
+        {
+            // for entire property path, get type data
+            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filter.Key).ToList();
+            var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
+
+            // check if type can be null and resolve it's underlying type (in case Null<T>)
+            var (isNullableType, resolvedType) = ResolveNullableType(filteredPropertyType);
+            filteredPropertyType = resolvedType;
+
+            if (filteredPropertyType == typeof(bool))
+            {
+                throw new Exception("Bool value can't be partially matched!");
+            }
+
+            // define like function
+            string likeFunction = "DbFunctionsExtensions.Like";
+
+            // in case of string search, postgres uses ILIKE operator to do case insensitive search
+            if (filteredPropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
+            {
+                likeFunction = "NpgsqlDbFunctionsExtensions.ILike";
+            }
+
+            // this part will split entire path:
+            // if input path is a.b.c -> output will be DBFunctions.Like(EFFunction, it.a.b.c, expression)
+            // if input path is a.b[].c -> output will be it.a.b.Any(x => DBFunctions.Like(EFFunction, x.c, expression))
+            // if input path is a.b[].c.d -> output will be it.a.b.Any(x => DBFunctions.Like(EFFunction, x.c.d, expression))
+            string lastExpressionVariable = "it."; // contains last expression variable use - this will be used in DbFunction.Like call
+            var lastCollectionIndex = propertyChainInfo.Select(x => x.isCollectionType).ToList().LastIndexOf(true); // build .Any up to last collection, path segments after that will go into DbFunctions call
+            int bracketsOpen = 0;
+            string likeExpression = "";
+
+            // if collection exists, we must build expression which starts at "it." (current instance)
+            // if collection does not exist, this will go directly into DbFunction call (DbFunctions.Like(it....))
+            if (lastCollectionIndex > -1)
+                likeExpression = "it.";
+
+            // if input path is a.b[].c -> this part will produce it.a.b.Any(x =>
+            // this loop will build entire path, up to last collection. If collection is not in path - this will be skipped
+            for (int i = 0; i <= lastCollectionIndex; i++)
+            {
+                var (_, propertyInfo, isCollectionType) = propertyChainInfo[i];
+                if (isCollectionType)
+                {
+                    var expr = $"{propertyInfo.Name}.Any(xyz{i} => ";
+                    lastExpressionVariable = $"xyz{i}.";
+
+                    // last segment will contain DbFunctions call which has expression variable sa argument
+                    if (i != lastCollectionIndex)
+                        expr += lastExpressionVariable;
+
+                    likeExpression += expr;
+                    bracketsOpen++;
+                }
+                else
+                {
+                    likeExpression += $"{propertyInfo.Name}.";
+                }
+            }
+
+            // this part will add DBFunctions.Like(EFFunction, x.c, expression))
+            // segments after last collection (or all segments if there is no collection) must go inside DbFunctions call
+            var segmentPathAfterLastCollection = string.Join(".", propertyChainInfo.Skip(lastCollectionIndex + 1).Select(x => x.propertyInfo.Name));
+
+            // specify argument for LIKE function. By default its it./xyz0./xyz1./... + segment after last collection in path (or
+            // entire path if there is no collection)
+            // if we don't deal with string value, we must pack/unpack it force EF to pass it as an argument. LIKE function on database
+            // must work with any value, not just string. More details:
+            // https://stackoverflow.com/a/56718249
+            var likeArgument = $"{lastExpressionVariable}{segmentPathAfterLastCollection}";
+            if (filteredPropertyType != typeof(string))
+            {
+                likeArgument = $"string(object({likeArgument}))";
+            }
+
+            //
+            string notNullExpression = "";
+            if (isNullableType)
+                notNullExpression = $"{likeArgument} != null && ";
+
+            // at this point like expression will either be empty string or something like "it.a.b.Any(xyz0 => "
+            // we'll add to id:
+            // - likeFunction- Like function (Like/ILike)
+            // - likeArgument - expression
+            // - parameterPlaceholder - search expression
+            // - brackets - number of brackets that need to be closed
+            string expression = likeExpression + $" {notNullExpression} {likeFunction}(EF.Functions, {likeArgument}, {parameterPlaceholder}){new string(')', bracketsOpen)}";
+            string argument = $"%{currentFilterStringValue}%";
+
+            return (expression, argument);
+        }
+
         /// <summary>
         /// Returns dynamic query expression and parameters for given filter and it's property
         /// </summary>
         /// <param name="filter"></param>
         /// <param name="filteredProperty"></param>
         /// <returns></returns>
-        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, PropertyInfo filteredProperty, LogicalOperators logicalOperator)
+        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, LogicalOperators logicalOperator)
         {
-            var filteredPropertyType = filteredProperty.PropertyType;
-
-            var nullableType = Nullable.GetUnderlyingType(filteredPropertyType);
-            if (nullableType != null)
-            {
-                // filterPropTypeIsNullable = true;
-                filteredPropertyType = nullableType;
-            }
-
             var arguments = new List<object>();
             var expressions = new List<string>();
 
             if (filter?.Values != null && filter.Values.Any())
                 foreach (string filterStringValue in filter.Values)
                 {
-                    (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, filterStringValue);
-                    string expression;
+                    (string expression, object argument) matchResult;
 
                     switch (filter.Type)
                     {
                         case FilterMatchTypes.EXACT_MATCH:
-                            if (filterHasInvalidValue)
-                                throw new Exception("Invalid filter value!");
-
-                            expression = $"it.{filter.Key} == {parameterPlaceholder}";
-                            arguments.Add(filterValue);
+                            matchResult = GetExactMatchExpression(filter, filterStringValue);
                             break;
 
                         case FilterMatchTypes.PARTIAL_MATCH:
-                            if (filteredProperty.PropertyType == typeof(bool))
-                            {
-                                throw new Exception("Bool value can't be partially matched!");
-                            }
-
-                            // in case of string search, postgres uses ILIKE operator to do case insensitive search
-                            if (filteredProperty.PropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
-                            {
-                                expression = $"((it.{filter.Key} != null) AND (NpgsqlDbFunctionsExtensions.ILike(EF.Functions, it.{filter.Key}, {parameterPlaceholder})))";
-                                arguments.Add($"%{filterStringValue}%");
-                            }
-                            else
-                            {
-                                // https://stackoverflow.com/a/56718249
-                                expression = $"((it.{filter.Key} != null) AND (DbFunctionsExtensions.Like(EF.Functions, string(object(it.{filter.Key})), {parameterPlaceholder})))";
-                                arguments.Add($"%{filterStringValue}%");
-                            }
-
+                            matchResult = GetPartialMatchExpression(filter, filterStringValue);
                             break;
 
                         default:
                             throw new NotImplementedException();
                     }
 
-                    expressions.Add(expression);
+                    expressions.Add(matchResult.expression);
+                    arguments.Add(matchResult.argument);
                 }
 
             var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicalOperator]} ", expressions);
@@ -238,53 +390,10 @@ namespace Intellegens.Commons.Search
                 // check if query contains any SQL injection potential
                 ValidateDynamicLinqFieldName(filter.Key);
 
-                // get property for given filter key
-                var prop = TypeUtils.GetProperty<T>(filter.Key, StringComparison.OrdinalIgnoreCase);
-
-                yield return GetFilterExpression(filter, prop, logicalOperator);
+                yield return GetFilterExpression(filter, logicalOperator);
             };
         }
 
-        /// <summary>
-        /// Build search query from SearchRequest object
-        /// </summary>
-        /// <param name="sourceData"></param>
-        /// <param name="searchRequest"></param>
-        /// <returns></returns>
-        protected IQueryable<T> BuildSearchQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
-        {
-            // get all defined filters/search
-            var filtersParsed = GetQueryPartsAndParams(searchRequest.Filters, LogicalOperators.AND);
-            var searchParsed = GetQueryPartsAndParams(searchRequest.Search, LogicalOperators.OR);
-
-            // combine all query parts into single
-            var filtersCombined = CombineQueryPartsAndArguments(filtersParsed, LogicalOperators.AND);
-            var searchCombined = CombineQueryPartsAndArguments(searchParsed, LogicalOperators.OR);
-
-            // combine filter and search
-            var queryParts = new List<(string expression, object[] arguments)> { filtersCombined, searchCombined };
-            var (expression, arguments) = CombineQueryPartsAndArguments(queryParts, LogicalOperators.AND);
-
-            if (!string.IsNullOrEmpty(expression))
-            {
-                // expression contains parameter placeholder defined in const parameterPlaceholder
-                // each query must contain parameters in following pattern: @0, @1, ...
-                // we need to replace placeholder with this kind of expression
-                var expressionParamParts = expression.Split(parameterPlaceholder);
-                var expressionWithParamsReplaced = expressionParamParts[0];
-
-                for (int i = 1; i < expressionParamParts.Length; i++)
-                {
-                    string expr = expressionParamParts[i];
-                    expressionWithParamsReplaced += $"@{i - 1}{expr}"; // parameters start from @0
-                }
-
-                sourceData = sourceData.Where(parsingConfig, expressionWithParamsReplaced, arguments);
-            }
-
-            sourceData = OrderQuery(sourceData, searchRequest);
-
-            return sourceData;
-        }
+        
     }
 }

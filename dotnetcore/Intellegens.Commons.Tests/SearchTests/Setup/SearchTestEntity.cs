@@ -19,12 +19,12 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         public Guid Guid { get; set; }
 
         [ForeignKey(nameof(Sibling))]
-        public int? SiblingId { get;set;}
-        
+        public int? SiblingId { get; set; }
+
         public SearchTestEntity? Sibling { get; set; }
 
         [InverseProperty("Parent")]
-        public virtual ICollection<SearchTestChildEntity> Children { get; set; }
+        public virtual ICollection<SearchTestChildEntity> Children { get; set; } = new List<SearchTestChildEntity>();
 
         [InverseProperty("Sibling")]
         public virtual SearchTestEntity? SiblingBackReference { get; set; }

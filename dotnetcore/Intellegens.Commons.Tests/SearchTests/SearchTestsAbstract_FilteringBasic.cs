@@ -97,6 +97,54 @@ namespace Intellegens.Commons.Tests.SearchTests
         }
 
         [Fact]
+        public async Task Exact_text_filtering_by_nested_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Filters = new List<SearchFilter>
+                {
+                    SearchFilter.ExactMatch("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchFilter.ExactMatch("Numeric", entity.Numeric.ToString())
+                }
+            };
+
+            var querySearch = dbContext.SearchTestEntities
+                .Include(x => x.Children)
+                .Where(x => x.TestingSessionId == entity.TestingSessionId);
+
+            var data = await searchService.Search(querySearch, searchRequest);
+            Assert.True(data.Count >= 1);
+        }
+
+        [Fact]
+        public async Task Partial_match_text_filtering_by_nested_collection_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var entity = await query.FirstAsync();
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Filters = new List<SearchFilter>
+                {
+                    SearchFilter.PartialMatch("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchFilter.PartialMatch("Numeric", entity.Numeric.ToString())
+                }
+            };
+
+            var querySearch = dbContext.SearchTestEntities
+                .Include(x => x.Children)
+                .Where(x => x.TestingSessionId == entity.TestingSessionId);
+
+            var data = await searchService.Search(querySearch, searchRequest);
+            Assert.True(data.Count >= 1);
+        }
+
+        [Fact]
         public async Task Null_params_should_be_handled_work()
         {
             var query = await GenerateTestDataAndFilterQuery(5);
