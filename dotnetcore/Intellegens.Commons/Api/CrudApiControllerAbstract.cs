@@ -18,21 +18,21 @@ namespace Intellegens.Commons.Api
         }
 
         [HttpGet("{id}")]
-        public abstract Task<ApiResult<T>> Get([FromRoute]TKey id);
+        public abstract Task<ApiResult<T>> Get([FromRoute] TKey id);
 
         [HttpPost("{id}")]
-        public abstract Task<ApiResult<T>> Update([FromBody]T data, [FromRoute]TKey id);
+        public abstract Task<ApiResult<T>> Update([FromBody] T data, [FromRoute] TKey id);
 
         [HttpDelete("{id}")]
-        public abstract Task<ApiResult> Delete([FromRoute]TKey id);
+        public abstract Task<ApiResult> Delete([FromRoute] TKey id);
 
         [HttpPost("")]
-        public abstract Task<ApiResult<T>> Create([FromBody]T data);
+        public abstract Task<ApiResult<T>> Create([FromBody] T data);
 
         [HttpPost("search")]
-        public abstract Task<ApiGridResult<T>> Search([FromBody]SearchRequest request);
+        public abstract Task<ApiGridResult<T>> Search([FromBody] SearchRequest request);
 
         [HttpPost("indexof/{id}")]
-        public abstract Task<ApiResult<int>> IndexOf([FromRoute]TKey id, [FromBody]SearchRequest request);
+        public abstract Task<ApiResult<int>> IndexOf([FromRoute] TKey id, [FromBody] SearchRequest request);
     }
 }

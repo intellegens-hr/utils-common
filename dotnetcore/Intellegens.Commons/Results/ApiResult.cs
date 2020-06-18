@@ -2,6 +2,10 @@
 
 namespace Intellegens.Commons.Results
 {
+    /// <summary>
+    /// ApiResult class should be used by all api endpoints - directly or inherited in some way.
+    /// Represents standard API response
+    /// </summary>
     public class ApiResult
     {
         public static ApiResult SuccessResult()
@@ -36,6 +40,10 @@ namespace Intellegens.Commons.Results
         public List<ResultError> Errors { get; set; } = new List<ResultError>();
     }
 
+    /// <summary>
+    /// Api result containing data
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class ApiResult<T> : ApiResult
     {
         public static new ApiResult<T> SuccessResult()

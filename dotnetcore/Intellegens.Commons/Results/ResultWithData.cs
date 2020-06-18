@@ -2,6 +2,10 @@
 
 namespace Intellegens.Commons.Results
 {
+    /// <summary>
+    /// Result class with data
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class Result<T> : Result
     {
         public static Result<T> SuccessDataResult(T data)

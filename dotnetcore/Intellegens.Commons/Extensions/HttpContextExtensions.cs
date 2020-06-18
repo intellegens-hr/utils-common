@@ -5,6 +5,11 @@ namespace Intellegens.Commons.Extensions
 {
     public static class HttpContextExtensions
     {
+        /// <summary>
+        /// Look for ORIGIN and X-ORIGIN headers and return their values
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <returns></returns>
         public static (string headerOrigin, string headerXOrigin) GetOriginHeaderValues(this HttpContext httpContext)
         {
             var headers = httpContext

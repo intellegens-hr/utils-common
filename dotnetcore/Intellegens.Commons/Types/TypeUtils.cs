@@ -31,6 +31,12 @@ namespace Intellegens.Commons.Types
             return typePropertiesCache.GetOrAdd(type, (Type type) => type.GetProperties().ToList());
         }
 
+        /// <summary>
+        /// For all types which implement IEnumerable<T> - returns T.
+        /// If type doesn't implement IEnumerable<T> - return type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static Type TransformToUnderlyingEnumerableTypeIfExists(this Type type)
         {
             if (type.GetIEnumerableGenericType() != null)
@@ -41,6 +47,13 @@ namespace Intellegens.Commons.Types
             return type;
         }
 
+        /// <summary>
+        /// For path in format complexProperty.nestedComplexProperty.Id, will return property information for each property in chain.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="propertyName"></param>
+        /// <param name="comparison"></param>
+        /// <returns></returns>
         public static IEnumerable<(string path, PropertyInfo propertyInfo, bool isCollectionType)> GetPropertyInfoPerPathSegment(Type type, string propertyName, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
             List<string> chain = propertyName.Split('.').ToList();
@@ -72,6 +85,13 @@ namespace Intellegens.Commons.Types
             }
         }
 
+        /// <summary>
+        /// For path in format complexProperty.nestedComplexProperty.Id, will return property information for each property in chain.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="propertyName"></param>
+        /// <param name="comparison"></param>
+        /// <returns></returns>
         public static IEnumerable<(string path, PropertyInfo propertyInfo, bool isCollectionType)> GetPropertyInfoPerPathSegment<T>(string propertyName, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
             where T : class
         {

@@ -2,6 +2,9 @@
 
 namespace Intellegens.Commons.Results
 {
+    /// <summary>
+    /// Common class all services can use to return it's status
+    /// </summary>
     public class Result
     {
         #region Static initializeers

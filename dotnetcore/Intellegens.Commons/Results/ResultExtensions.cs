@@ -2,6 +2,9 @@
 
 namespace Intellegens.Commons.Results
 {
+    /// <summary>
+    /// Various extensions which transform Result to ApiResult/ApiResult<T>
+    /// </summary>
     public static class ResultExtensions
     {
         public static ApiResult ToApiResult(this Result result)
