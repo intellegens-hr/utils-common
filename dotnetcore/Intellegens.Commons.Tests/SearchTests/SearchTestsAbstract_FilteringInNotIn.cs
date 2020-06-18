@@ -20,22 +20,22 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.TestingSessionId), entities[0].TestingSessionId),
+                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities[0].TestingSessionId),
 
                     // NOT IN
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[2].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Operator = FilterMatchOperators.EQUALS,
+                        NegateExpression = true
                     },
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[3].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Operator = FilterMatchOperators.EQUALS,
+                        NegateExpression = true
                     }
                 },
                 Search = new List<SearchFilter>
@@ -43,15 +43,15 @@ namespace Intellegens.Commons.Tests.SearchTests
                     // IN values
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[0].Id.ToString()},
-                        Type = FilterMatchTypes.EXACT_MATCH
+                        Operator = FilterMatchOperators.EQUALS
                     },
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[1].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH
+                        Operator = FilterMatchOperators.EQUALS
                     }
                 }
             };
@@ -73,16 +73,16 @@ namespace Intellegens.Commons.Tests.SearchTests
                 {
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = FilterMatchOperators.EQUALS,
                         Values = new List<string>{ entities[0].Id.ToString(), entities[1].Id.ToString() },
                     },
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
-                        Type = FilterMatchTypes.EXACT_MATCH,
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        Operator = FilterMatchOperators.EQUALS,
+                        NegateExpression = true
                     }
                 }
             };
@@ -104,10 +104,10 @@ namespace Intellegens.Commons.Tests.SearchTests
                 {
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = FilterMatchOperators.EQUALS,
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
-                        ComparisonType = ComparisonTypes.NOT_EQUAL
+                        NegateExpression = true
                     }
                 }
             };
@@ -129,8 +129,8 @@ namespace Intellegens.Commons.Tests.SearchTests
                 {
                     new SearchFilter
                     {
-                        Key = nameof(SearchTestEntity.Id),
-                        Type = FilterMatchTypes.EXACT_MATCH,
+                        Keys = new List<string>{ nameof(SearchTestEntity.Id) },
+                        Operator = FilterMatchOperators.EQUALS,
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() }
                     }
                 }

@@ -40,7 +40,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.Text), entity.Text)
+                    SearchFilter.Equal(nameof(SearchTestEntity.Text), entity.Text)
                 }
             };
 
@@ -60,7 +60,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("Parent.TestingSessionId", entity.TestingSessionId)
+                    SearchFilter.Equal("Parent.TestingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -84,7 +84,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("parent.testingSessionId", entity.TestingSessionId)
+                    SearchFilter.Equal("parent.testingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -107,8 +107,8 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("Children.TestingSessionId", entity.TestingSessionId),
-                    SearchFilter.ExactMatch("Numeric", entity.Numeric.ToString())
+                    SearchFilter.Equal("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchFilter.Equal("Numeric", entity.Numeric.ToString())
                 }
             };
 
@@ -158,7 +158,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 {
                     new SearchFilter
                     {
-                        Key = "Parent.TestingSessionId",
+                        Keys = new List<string>{ "Parent.TestingSessionId" },
                         Values = null
                     }
                 }

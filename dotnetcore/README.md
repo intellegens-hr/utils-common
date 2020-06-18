@@ -46,126 +46,7 @@ Basic results are Result class used by services and ApiResult used by controller
 
 To avoid writing these classes (and their extension methods) in all project, most common result forms can be found here and used anywhere.
 
-## Search service (CURRENT)
-
-Search service provides easy way to provide filtering features on any IQueryable/IEnumerable data source. Also, it's simple structure makes it great for API usage.
-
-### Basic strucutres
-```csharp
-public class SearchRequest
-{
-    public int Offset { get; set; }
-    public int Limit { get; set; }
-    public List<SearchFilter> Filters { get; set; }
-    public List<SearchFilter> Search { get; set; }
-    public List<SearchOrder> Ordering { get; set; }
-}
-
-public class SearchFilter
-{
-    // Key to filter by
-    public string Key { get; set; }
-
-    // EXACT_MATCH
-    // PARTIAL_MATCH
-    public FilterMatchTypes Type { get; set; }
-
-    // EQUAL
-    // NOT EQUAL
-    public ComparisonTypes ComparisonType { get; set; } 
-    public List<string> Values { get; set; }
-}
-
-public class SearchOrder
-{
-    // Key to sort by
-    public string Key { get; set; }
-    public bool Ascending { get; set; }
-}
-```
-As seen above, basic search request consists of following elements:
-- offset - number of records to skip when paging
-- limit - number of records to return when paging
-- filters - multiple filters with AND operator between them
-- search - multiple filters with OR operator between them
-- ordering - define orderBy
-
-### Examples
-
-Following entities will be used for demonstration:
-```csharp
-public class Role
-{
-    public string Id { get; set; }
-    public string Title { get; set; }
-}
-
-public class User
-{
-    public int Id { get; set; }
-    public int TenantId { get; set; }
-    public string Name { get; set; }
-    public string Surname { get; set; }
-    public string FullName { get; set; }
-    public DateTime Dob { get; set; }
-    public virtual ICollection<Role> Roles { get; set; }
-}
-```
-
-#### Filter all users in tenant 1 with role "A" or "B", ordered by fullname
-```json
-{
-    "filter": [{
-        "key": "tenantId",
-        "type": "EXACT_MATCH",
-        "values": ["1"]
-    }],
-    "search": [{
-        "key": "roles.id",
-        "type": "EXACT_MATCH",
-        "values": ["A", "B"]
-    }],
-    "order": [{
-        "key": "fullName",
-        "ascending": true
-    }]
-}
-```
-
-#### Filter all users that have "John" in firstName or lastName
-```json
-{
-    "search": [{
-        "key": "firstName",
-        "type": "PARTIAL_MATCH",
-        "values": ["John"]
-    },
-    {
-        "key": "lastName",
-        "type": "PARTIAL_MATCH",
-        "values": ["John"]
-    }]
-}
-```
-
-#### Filter all users that have "John" in firstName and lastName
-```json
-{
-    "filter": [{
-        "key": "firstName",
-        "type": "PARTIAL_MATCH",
-        "values": ["John"]
-    },
-    {
-        "key": "lastName",
-        "type": "PARTIAL_MATCH",
-        "values": ["John"]
-    }]
-}
-```
-
-
-## Search service (NEW)
+## Search service
 
 Search service provides easy way to provide filtering features on any IQueryable/IEnumerable data source. Also, it's simple structure makes it great for API usage.
 
@@ -192,11 +73,9 @@ public class SearchFilter
     // LESS_THAN_OR_EQUAL_TO
     // GREATER_THAN
     // GREATER_THAN_OR_EQUAL_TO
-    public FilterMatchTypes Type { get; set; }
+    public FilterMatchOperators Operator { get; set; }
 
-    // EQUAL
-    // NOT EQUAL
-    public ComparisonTypes ComparisonType { get; set; } 
+    public bool NegateExpression { get; set; } 
     public List<string> Values { get; set; }
 }
 
@@ -231,7 +110,7 @@ public class User
     public string Name { get; set; }
     public string Surname { get; set; }
     public string FullName { get; set; }
-    public DateTime Dob { get; set; }
+    public DateTime DateOfBirth { get; set; }
     public virtual ICollection<Role> Roles { get; set; }
 }
 ```
@@ -241,12 +120,12 @@ public class User
 {
     "filter": [{
         "keys": ["tenantId"],
-        "type": "EQUALS",
+        "operator": "EQUALS",
         "values": ["1"]
     }],
     "search": [{
         "keys": ["roles.id"],
-        "type": "EQUALS",
+        "operator": "EQUALS",
         "values": ["A", "B"]
     }],
     "order": [{
@@ -261,7 +140,7 @@ public class User
 {
     "search": [{
         "keys": ["firstName", "lastName"],
-        "type": "EQUALS",
+        "operator": "EQUALS",
         "values": ["John"]
     }]
 }
@@ -272,7 +151,7 @@ public class User
 {
     "filter": [{
         "keys": ["firstName", "lastName"],
-        "type": "EQUALS",
+        "operator": "EQUALS",
         "values": ["John"]
     }]
 }
@@ -282,13 +161,13 @@ public class User
 ```json
 {
     "search": [{
-        "keys": ["dob"],
-        "type": "LESS_THAN",
+        "keys": ["dateOfBirth"],
+        "operator": "LESS_THAN",
         "values": ["1980-01-01"]
     },
     {
-        "keys": ["dob"],
-        "type": "GREATER_THAN_OR_EQUAL_TO",
+        "keys": ["dateOfBirth"],
+        "operator": "GREATER_THAN_OR_EQUAL_TO",
         "values": ["2001-01-01"]
     }]
 }

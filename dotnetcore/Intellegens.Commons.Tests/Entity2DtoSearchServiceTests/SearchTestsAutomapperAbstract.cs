@@ -1,7 +1,7 @@
 using Bogus;
 using Intellegens.Commons.Search;
 using Intellegens.Commons.Tests.SearchTests.Setup;
-using Intellegens.Commons.Tests.SearchTestsAutoMapper.Setup;
+using Intellegens.Commons.Tests.Entity2DtoSearchServiceTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
+namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
 {
     public abstract class SearchTestsAutomapperAbstract
     {
@@ -142,7 +142,7 @@ namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntityDto.Text), dto.Text)
+                    SearchFilter.Equal(nameof(SearchTestEntityDto.Text), dto.Text)
                 }
             };
 
@@ -162,7 +162,7 @@ namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("ParentDto.TestingSessionId", dto.TestingSessionId)
+                    SearchFilter.Equal("ParentDto.TestingSessionId", dto.TestingSessionId)
                 }
             };
 
@@ -186,7 +186,7 @@ namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("parentDto.testingSessionId", dto.TestingSessionId)
+                    SearchFilter.Equal("parentDto.testingSessionId", dto.TestingSessionId)
                 }
             };
 
@@ -209,8 +209,8 @@ namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
-                    SearchFilter.ExactMatch("Numeric", dto.Numeric.ToString())
+                    SearchFilter.Equal("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
+                    SearchFilter.Equal("Numeric", dto.Numeric.ToString())
                 }
             };
 
@@ -260,7 +260,7 @@ namespace Intellegens.Commons.Tests.SearchTestsAutoMapper
                 {
                     new SearchFilter
                     {
-                        Key = "ParentDto.TestingSessionId",
+                        Keys = new List<string> { "ParentDto.TestingSessionId" },
                         Values = null
                     }
                 }

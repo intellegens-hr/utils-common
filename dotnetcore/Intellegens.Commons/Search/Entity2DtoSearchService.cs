@@ -63,6 +63,11 @@ namespace Intellegens.Commons.Search
             return string.Join('.', newSegments);
         }
 
+        private List<string> TranslateDtoToEntityPath(List<string> dtoPaths)
+            => dtoPaths
+                .Select(x => TranslateDtoToEntityPath(x))
+                .ToList();
+
         /// <summary>
         ///
         /// </summary>
@@ -79,9 +84,9 @@ namespace Intellegens.Commons.Search
                             .Filters
                             .Select(x => new SearchFilter
                             {
-                                Key = TranslateDtoToEntityPath(x.Key),
-                                ComparisonType = x.ComparisonType,
-                                Type = x.Type,
+                                Keys = TranslateDtoToEntityPath(x.Keys),
+                                NegateExpression = x.NegateExpression,
+                                Operator = x.Operator,
                                 Values = x.Values
                             })
                             .ToList(),
@@ -89,9 +94,9 @@ namespace Intellegens.Commons.Search
                             .Search
                             .Select(x => new SearchFilter
                             {
-                                Key = TranslateDtoToEntityPath(x.Key),
-                                ComparisonType = x.ComparisonType,
-                                Type = x.Type,
+                                Keys = TranslateDtoToEntityPath(x.Keys),
+                                NegateExpression = x.NegateExpression,
+                                Operator = x.Operator,
                                 Values = x.Values
                             })
                             .ToList(),

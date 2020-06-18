@@ -2,9 +2,16 @@
 
 namespace Intellegens.Commons.Search
 {
-    public enum FilterMatchTypes { EXACT_MATCH, PARTIAL_MATCH, WILDCARD, REGEX }
-
-    public enum ComparisonTypes { EQUAL = 0, NOT_EQUAL = 1 }
+    public enum FilterMatchOperators
+    {
+        STRING_CONTAINS,
+        STRING_WILDCARD,
+        EQUALS,
+        LESS_THAN,
+        LESS_THAN_OR_EQUAL_TO,
+        GREATER_THAN,
+        GREATER_THAN_OR_EQUAL_TO
+    }
 
     public class SearchRequest
     {
@@ -19,17 +26,17 @@ namespace Intellegens.Commons.Search
     public class SearchFilter
     {
         public static SearchFilter PartialMatch(string key, string value)
-            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.PARTIAL_MATCH };
+            => new SearchFilter { Keys = new List<string> { key }, Values = new List<string> { value }, Operator = FilterMatchOperators.STRING_CONTAINS };
 
-        public static SearchFilter ExactMatch(string key, string value)
-            => new SearchFilter { Key = key, Values = new List<string> { value }, Type = FilterMatchTypes.EXACT_MATCH };
+        public static SearchFilter Equal(string key, string value)
+            => new SearchFilter { Keys = new List<string> { key }, Values = new List<string> { value }, Operator = FilterMatchOperators.EQUALS };
 
-        public string Key { get; set; }
+        public List<string> Keys { get; set; }
 
         //For future's sake, will define type of filtering
-        public FilterMatchTypes Type { get; set; } = FilterMatchTypes.PARTIAL_MATCH;
+        public FilterMatchOperators Operator { get; set; } = FilterMatchOperators.STRING_CONTAINS;
 
-        public ComparisonTypes ComparisonType { get; set; } = ComparisonTypes.EQUAL;
+        public bool NegateExpression { get; set; } = false;
 
         // search value(s)
         public List<string> Values { get; set; }

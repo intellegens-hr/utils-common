@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 
@@ -16,6 +17,18 @@ namespace Intellegens.Commons.Search
         {
             { LogicalOperators.AND, "&&" },
             { LogicalOperators.OR, "||" }
+        };
+
+        /// <summary>
+        /// Map between FilterMatchTypes enum and c sharp logical operators. Used when building expressions
+        /// </summary>
+        private readonly Dictionary<FilterMatchOperators, string> filterMatchTypeToOperatorMap = new Dictionary<FilterMatchOperators, string>
+        {
+            { FilterMatchOperators.EQUALS, "==" },
+            { FilterMatchOperators.LESS_THAN, "<" },
+            { FilterMatchOperators.LESS_THAN_OR_EQUAL_TO, "<=" },
+            { FilterMatchOperators.GREATER_THAN, ">" },
+            { FilterMatchOperators.GREATER_THAN_OR_EQUAL_TO, ">=" }
         };
 
         private const string parameterPlaceholder = "@@Parameter@@";
@@ -81,9 +94,9 @@ namespace Intellegens.Commons.Search
         /// <param name="filterValueType">Filtered property type</param>
         /// <param name="filterValue">Filter value</param>
         /// <returns>Tuple containing casted filter value and info if conversion was successful</returns>
-        private static (bool isInvalid, object value) ParseFilterValue(Type filterValueType, string filterValue)
+        private static (bool isInvalid, dynamic value) ParseFilterValue(Type filterValueType, string filterValue)
         {
-            object filterValueParsed = filterValue;
+            dynamic filterValueParsed = filterValue;
             bool filterInvalid = false;
 
             // try parse filter value. Parsed filter value is used for exact search
@@ -111,7 +124,7 @@ namespace Intellegens.Commons.Search
             }
             else if (DecimalTypes.Contains(filterValueType))
             {
-                filterInvalid = !Decimal.TryParse(filterValue, out decimal parsedDecimal);
+                filterInvalid = !Decimal.TryParse(filterValue, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal parsedDecimal);
                 if (!filterInvalid)
                     filterValueParsed = parsedDecimal;
             }
@@ -167,18 +180,18 @@ namespace Intellegens.Commons.Search
         /// <summary>
         /// Get exact match filter expression and parameter
         /// </summary>
-        /// <param name="filter"></param>
+        /// <param name="filterKey"></param>
         /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
         /// <returns></returns>
-        private (string expression, object parameter) GetExactMatchExpression(SearchFilter filter, string currentFilterStringValue)
+        private (string expression, object parameter) GetOperatorMatchExpression(string filterKey, FilterMatchOperators matchType, string currentFilterStringValue)
         {
-            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filter.Key).ToList();
+            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filterKey).ToList();
             var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
 
             var (isNullable, resolvedType) = ResolveNullableType(filteredPropertyType);
             filteredPropertyType = resolvedType;
 
-            (bool filterHasInvalidValue, object filterValue) = ParseFilterValue(filteredPropertyType, currentFilterStringValue);
+            (bool filterHasInvalidValue, dynamic filterValue) = ParseFilterValue(filteredPropertyType, currentFilterStringValue);
             if (filterHasInvalidValue)
                 throw new Exception("Invalid filter value!");
 
@@ -201,7 +214,8 @@ namespace Intellegens.Commons.Search
                 }
             }
 
-            var expression = $"it.{string.Join(".", pathSegmentsResolved)} == {parameterPlaceholder} {new String(')', bracketsOpen)}";
+            var matchOperator = filterMatchTypeToOperatorMap[matchType];
+            var expression = $"it.{string.Join(".", pathSegmentsResolved)} {matchOperator} {parameterPlaceholder} {new String(')', bracketsOpen)}";
 
             return (expression, filterValue);
         }
@@ -209,13 +223,14 @@ namespace Intellegens.Commons.Search
         /// <summary>
         /// Get exact match filter expression and parameter
         /// </summary>
-        /// <param name="filter"></param>
+        /// <param name="filterKey"></param>
         /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
+        /// <param name="likeArgument"></param>
         /// <returns></returns>
-        private (string expression, string parameter) GetPartialMatchExpression(SearchFilter filter, string currentFilterStringValue)
+        private (string expression, string parameter) GetLikeExpression(string filterKey, string likeString)
         {
             // for entire property path, get type data
-            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filter.Key).ToList();
+            var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filterKey).ToList();
             var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
 
             // check if type can be null and resolve it's underlying type (in case Null<T>)
@@ -300,18 +315,32 @@ namespace Intellegens.Commons.Search
             // - parameterPlaceholder - search expression
             // - brackets - number of brackets that need to be closed
             string expression = likeExpression + $" {notNullExpression} {likeFunction}(EF.Functions, {likeArgument}, {parameterPlaceholder}){new string(')', bracketsOpen)}";
-            string argument = $"%{currentFilterStringValue}%";
 
-            return (expression, argument);
+            return (expression, likeString);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filterStringValue"></param>
+        /// <returns></returns>
+        private string GetWildcardLikeExpression(string filterStringValue)
+        {
+            return filterStringValue
+                .Replace("%", "\\%")
+                .Replace("_", "\\_")
+                .Replace("*", "%")
+                .Replace("?", "_");
         }
 
         /// <summary>
         /// Returns dynamic query expression and parameters for given filter and it's property
         /// </summary>
+        /// <param name="currentKey">SearchFilter has multiple keys, this method parses only given key</param>
         /// <param name="filter"></param>
         /// <param name="filteredProperty"></param>
         /// <returns></returns>
-        private (string expression, object[] arguments) GetFilterExpression(SearchFilter filter, LogicalOperators logicalOperator)
+        private (string expression, object[] arguments) GetFilterExpression(string currentFilterKey, SearchFilter filter, LogicalOperators logicalOperator)
         {
             var arguments = new List<object>();
             var expressions = new List<string>();
@@ -321,14 +350,24 @@ namespace Intellegens.Commons.Search
                 {
                     (string expression, object argument) matchResult;
 
-                    switch (filter.Type)
+                    switch (filter.Operator)
                     {
-                        case FilterMatchTypes.EXACT_MATCH:
-                            matchResult = GetExactMatchExpression(filter, filterStringValue);
+                        case FilterMatchOperators.STRING_CONTAINS:
+                            string likeExpression = $"%{filterStringValue}%";
+                            matchResult = GetLikeExpression(currentFilterKey, likeExpression);
                             break;
 
-                        case FilterMatchTypes.PARTIAL_MATCH:
-                            matchResult = GetPartialMatchExpression(filter, filterStringValue);
+                        case FilterMatchOperators.STRING_WILDCARD:
+                            string wildcardExpression = GetWildcardLikeExpression(filterStringValue);
+                            matchResult = GetLikeExpression(currentFilterKey, wildcardExpression);
+                            break;
+
+                        case FilterMatchOperators.EQUALS:
+                        case FilterMatchOperators.GREATER_THAN:
+                        case FilterMatchOperators.GREATER_THAN_OR_EQUAL_TO:
+                        case FilterMatchOperators.LESS_THAN:
+                        case FilterMatchOperators.LESS_THAN_OR_EQUAL_TO:
+                            matchResult = GetOperatorMatchExpression(currentFilterKey, filter.Operator, filterStringValue);
                             break;
 
                         default:
@@ -344,7 +383,7 @@ namespace Intellegens.Commons.Search
             // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
             if (!string.IsNullOrEmpty(expressionsConcatenated))
             {
-                var operatorEquality = filter.ComparisonType == ComparisonTypes.NOT_EQUAL ? "!" : "";
+                var operatorEquality = filter.NegateExpression ? "!" : "";
                 expressionsConcatenated = $" {operatorEquality}({expressionsConcatenated}) ";
             }
 
@@ -388,12 +427,15 @@ namespace Intellegens.Commons.Search
                 var filter = filters[i];
 
                 // check if query contains any SQL injection potential
-                ValidateDynamicLinqFieldName(filter.Key);
+                foreach (var filterKey in filter.Keys)
+                    ValidateDynamicLinqFieldName(filterKey);
 
-                yield return GetFilterExpression(filter, logicalOperator);
+                var expressions = filter.Keys
+                    .Select(x => GetFilterExpression(x, filter, logicalOperator))
+                    .ToList();
+
+                yield return CombineQueryPartsAndArguments(expressions, logicalOperator);
             };
         }
-
-        
     }
 }

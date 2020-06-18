@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 
-namespace Intellegens.Commons.Tests.SearchTestsAutoMapper.Setup
+namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests.Setup
 {
     internal class AutomapperConfig
     {

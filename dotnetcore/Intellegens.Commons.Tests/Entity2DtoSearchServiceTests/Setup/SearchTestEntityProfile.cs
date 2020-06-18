@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 
-namespace Intellegens.Commons.Tests.SearchTestsAutoMapper.Setup
+namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests.Setup
 {
     public class SearchTestEntityProfile : Profile
     {

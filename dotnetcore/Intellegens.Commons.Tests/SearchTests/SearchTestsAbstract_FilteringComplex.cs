@@ -41,7 +41,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.Text), entity.Text),
+                    SearchFilter.Equal(nameof(SearchTestEntity.Text), entity.Text),
                     SearchFilter.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId.Substring(0, 2))
                 }
             };
@@ -61,8 +61,8 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Search = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch("Id", entities[0].Id.ToString()),
-                    SearchFilter.ExactMatch("Id", entities[1].Id.ToString())
+                    SearchFilter.Equal("Id", entities[0].Id.ToString()),
+                    SearchFilter.Equal("Id", entities[1].Id.ToString())
                 }
             };
 

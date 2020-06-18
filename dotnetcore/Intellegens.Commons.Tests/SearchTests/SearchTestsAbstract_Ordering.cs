@@ -20,7 +20,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 Limit = 5,
                 Filters = new List<SearchFilter>
                 {
-                    SearchFilter.ExactMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
+                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
                 },
                 Ordering = new List<SearchOrder>
                 {

@@ -40,5 +40,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             Assert.NotNull(data[10].SiblingId);
             Assert.Null(data[9].SiblingId);
         }
+
+        public override async Task Comparison_operator_should_work_with_numbers()
+        {
+
+        }
     }
 }
