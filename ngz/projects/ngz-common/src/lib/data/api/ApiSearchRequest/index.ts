@@ -27,21 +27,18 @@ export class ApiSearchRequestOrderModel extends EnTT {
 export class ApiSearchRequestFilterModel extends EnTT {
 
   /**
-   * Enumerates allowed ApiSearchRequestFilterModel.not values
-   */
-  // tslint:disable-next-line: variable-name
-  public static ComparisonType = {
-    Direct:  0,
-    Negated: 1
-  };
-
-  /**
    * Enumerates allowed ApiSearchRequestFilterModel.type values
    */
   // tslint:disable-next-line: variable-name
-  public static Type = {
-    ExactMatch: 0,
-    StartsWith: 1
+  //TODO: SA JUROM VIDJETI!!! Šaljemo li kao string ...
+  public static Operators = {
+    STRING_CONTAINS: 0,
+    STRING_WILDCARD: 1,
+    EQUALS: 2,
+    LESS_THAN: 3,
+    LESS_THAN_OR_EQUAL_TO: 4,
+    GREATER_THAN: 5,
+    GREATER_THAN_OR_EQUAL_TO: 6
   };
 
   constructor () { super(); super.entt(); }
@@ -49,15 +46,15 @@ export class ApiSearchRequestFilterModel extends EnTT {
   /**
    * Name of the filtering property
    */
-  public key   = undefined as string;
+  public keys   = undefined as string[];
   /**
    * Direct or negated filtering comparison
    */
-  public comparisonType   = ApiSearchRequestFilterModel.ComparisonType.Direct
+  public negateExpression   = false;
   /**
-   * Type of filtering comparison being used
+   * Filtering operator being used
    */
-  public type  = ApiSearchRequestFilterModel.Type.StartsWith;
+  public operator  = ApiSearchRequestFilterModel.Operators.STRING_CONTAINS;
   /**
    * Value to filter by
    */
@@ -73,7 +70,7 @@ export class ApiSearchRequestModel extends ApiRequestModel {
    * Enumerates allowed ApiSearchRequestFilterModel.type values
    */
   // tslint:disable-next-line: variable-name
-  public static FilterType = ApiSearchRequestFilterModel.Type;
+  public static FilterType = ApiSearchRequestFilterModel.Operators;
 
   constructor () { super(); super.entt(); }
 

@@ -99,9 +99,9 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
     for (const key of Object.keys(excludedIds)) {
       this._req.filters = excludedIds[key].map(excludedId => {
         const filter = new ApiSearchRequestFilterModel();
-        filter.key = key;
-        filter.type = ApiSearchRequestFilterModel.Type.ExactMatch;
-        filter.comparisonType = ApiSearchRequestFilterModel.ComparisonType.Negated;
+        filter.keys = [key];
+        filter.operator = ApiSearchRequestFilterModel.Operators.STRING_CONTAINS;
+        filter.negateExpression = true;
         filter.values = [excludedId]
         return filter;
       });
@@ -110,7 +110,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
     if (value) {
       this._req.search = this._searchBy.map(searchBy => {
         const search = new ApiSearchRequestFilterModel();
-        search.key = searchBy;
+        search.keys = [searchBy];
         search.values = [value, ...(value.indexOf(' ') !== -1 ? value.split(' ') : [])]
         return search;
       });
