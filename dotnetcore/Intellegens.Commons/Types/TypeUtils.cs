@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -8,8 +7,6 @@ namespace Intellegens.Commons.Types
 {
     public static class TypeUtils
     {
-        private static readonly ConcurrentDictionary<Type, List<PropertyInfo>> typePropertiesCache = new ConcurrentDictionary<Type, List<PropertyInfo>>();
-
         /// <summary>
         /// Returns all properties for type
         /// </summary>
@@ -21,15 +18,23 @@ namespace Intellegens.Commons.Types
             return GetProperties(typeof(T));
         }
 
+        public static List<(PropertyInfo property, TAttribute attribute)> GetTypePropertiesWithAttribute<TAttribute>(this Type objectType)
+            where TAttribute : Attribute
+        {
+            return objectType
+                .GetProperties()
+                .Where(x => x.GetCustomAttributes<TAttribute>().Any())
+                .Select(x => (x, x.GetCustomAttribute<TAttribute>()))
+                .ToList();
+        }
+
         /// <summary>
         /// Returns all properties for type
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static List<PropertyInfo> GetProperties(Type type)
-        {
-            return typePropertiesCache.GetOrAdd(type, (Type type) => type.GetProperties().ToList());
-        }
+        public static List<PropertyInfo> GetProperties(this Type type)
+            => type.GetProperties().ToList();
 
         /// <summary>
         /// For all types which implement IEnumerable<T> - returns T.
@@ -99,22 +104,37 @@ namespace Intellegens.Commons.Types
         }
 
         /// <summary>
+        /// Check if given type implements IEnumerable
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static bool IsIEnumerableType(this Type type)
+        {
+            if (type == typeof(string))
+                return false;
+
+            return type.GetInterfaces()
+                .Where(interfaceType => interfaceType.IsGenericType)
+                .Where(interfaceType => interfaceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                .Any();
+        }
+
+        /// <summary>
         /// Return base type if give type implements IEnumerable (ICollections, ILists, ...)
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
         public static Type GetIEnumerableGenericType(this Type type)
         {
-            // string implements IEnumerable<char>
-            if (type == typeof(string))
+            if (!type.IsIEnumerableType())
                 return null;
 
             return type.GetInterfaces()
                 .Where(interfaceType => interfaceType.IsGenericType)
                 .Where(interfaceType => interfaceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                 .FirstOrDefault()
-                ?.GetGenericArguments()
-                ?.FirstOrDefault();
+                .GetGenericArguments()
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -129,6 +149,28 @@ namespace Intellegens.Commons.Types
         {
             var propertyChainData = GetPropertyInfoPerPathSegment<T>(propertyName, comparison);
             return propertyChainData.Last().propertyInfo;
+        }
+
+        /// <summary>
+        /// Determine whether a type is simple (String, Decimal, DateTime, etc)
+        /// or complex (i.e. custom class with public properties and methods).
+        /// </summary>
+        /// <see cref="http://stackoverflow.com/questions/2442534/how-to-test-if-type-is-primitive"/>
+        public static bool IsSimpleType(
+            this Type type)
+        {
+            return
+                type.IsValueType ||
+                type.IsPrimitive ||
+                new Type[] {
+                typeof(String),
+                typeof(Decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+                typeof(TimeSpan),
+                typeof(Guid)
+                }.Contains(type) ||
+                Convert.GetTypeCode(type) != TypeCode.Object;
         }
     }
 }

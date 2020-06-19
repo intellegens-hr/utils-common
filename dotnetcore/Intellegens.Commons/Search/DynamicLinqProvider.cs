@@ -5,6 +5,9 @@ using System.Linq.Dynamic.Core.CustomTypeProviders;
 
 namespace Intellegens.Commons.Search
 {
+    /// <summary>
+    /// Used by dynamic Linq library to enable support for Db functions inside dynamic queries
+    /// </summary>
     public class DynamicLinqProvider : IDynamicLinkCustomTypeProvider
     {
         public HashSet<Type> GetCustomTypes()

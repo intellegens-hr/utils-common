@@ -1,7 +1,7 @@
 using Bogus;
 using Intellegens.Commons.Search;
-using Intellegens.Commons.Tests.SearchTests.Setup;
 using Intellegens.Commons.Tests.Entity2DtoSearchServiceTests.Setup;
+using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,9 +11,9 @@ using Xunit;
 
 namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
 {
-    public abstract class SearchTestsAutomapperAbstract
+    public abstract class Entity2DtoSearchServiceTestAbstract
     {
-        public SearchTestsAutomapperAbstract(SearchDbContext dbContext, SearchDatabaseProviders databaseProvider)
+        public Entity2DtoSearchServiceTestAbstract(SearchDbContext dbContext, SearchDatabaseProviders databaseProvider)
         {
             this.dbContext = dbContext;
             this.dbContext.Database.Migrate();
@@ -299,6 +299,33 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
 
             for (int i = 1; i < data.Count; i++)
                 Assert.True(data[i - 1].Date <= data[i].Date);
+        }
+
+        [Fact]
+        public async Task Fulltext_search_should_work_with_any_class()
+        {
+            var query = await GenerateTestDataAndFilterQuery(20);
+            var entity = await query.FirstAsync();
+
+            var textToSearch = entity.Text.Substring(0, 4);
+
+            var searchRequest = new SearchRequest
+            {
+                Limit = 20,
+                Filters = new List<SearchFilter>
+                {
+                    new SearchFilter
+                    {
+                        Operator = FilterMatchOperators.FULL_TEXT_SEARCH,
+                        Values = new List<string>{ textToSearch }
+                    }
+                }
+            };
+
+            var expectedCount = query.Where(x => x.Text.ToUpper().Contains(textToSearch.ToUpper()) || x.TestingSessionId.ToUpper().Contains(textToSearch.ToUpper())).Count();
+            var data = await searchService.Search(query, searchRequest);
+
+            Assert.True(data.Count == expectedCount);
         }
     }
 }

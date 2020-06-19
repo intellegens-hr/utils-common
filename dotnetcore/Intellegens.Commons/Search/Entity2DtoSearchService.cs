@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Intellegens.Commons.Search.FullTextSearch;
 using Intellegens.Commons.Types;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -15,8 +16,8 @@ namespace Intellegens.Commons.Search
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TDto"></typeparam>
     public class Entity2DtoSearchService<TEntity, TDto>
-        where TEntity : class
-        where TDto : class
+        where TEntity : class, new()
+        where TDto : class, new()
     {
         private readonly GenericSearchService<TEntity> searchService = new GenericSearchService<TEntity>();
         private readonly IMapper mapper;
@@ -24,6 +25,9 @@ namespace Intellegens.Commons.Search
         public Entity2DtoSearchService(IMapper mapper)
         {
             this.mapper = mapper;
+
+            if (searchService.FullTextSearchPaths.Any())
+                searchService.FullTextSearchPaths = TranslateDtoToEntityPath(FullTextSearchExtensions.GetFullTextSearchPaths<TDto>());
         }
 
         public Entity2DtoSearchService(IGenericSearchConfig genericSearchConfig, IMapper mapper) : this(mapper)
@@ -31,6 +35,12 @@ namespace Intellegens.Commons.Search
             searchService = new GenericSearchService<TEntity>(genericSearchConfig);
         }
 
+        /// <summary>
+        /// Take string path for DTO (e.g. customerDtos.parentDto.id) to entity path (customers.parent.id).
+        /// Uses Automapper to translate paths
+        /// </summary>
+        /// <param name="dtoPath"></param>
+        /// <returns></returns>
         private string TranslateDtoToEntityPath(string dtoPath)
         {
             var segments = dtoPath.Split('.').ToList();
@@ -47,9 +57,13 @@ namespace Intellegens.Commons.Search
                 var mapping = mapper.ConfigurationProvider.FindTypeMapFor(sourceType, destinationType);
 
                 var propertyMap = mapping.PropertyMaps
+                    .Where(pm => pm.SourceMember != null)
                     .FirstOrDefault(pm =>
                         pm.SourceMember.Name.Equals(segment, StringComparison.OrdinalIgnoreCase)
                     );
+
+                if (propertyMap == null)
+                    continue;
 
                 newSegments.Add(propertyMap.DestinationName);
 
@@ -64,7 +78,7 @@ namespace Intellegens.Commons.Search
         }
 
         private List<string> TranslateDtoToEntityPath(List<string> dtoPaths)
-            => dtoPaths
+            => (dtoPaths ?? new List<string>())
                 .Select(x => TranslateDtoToEntityPath(x))
                 .ToList();
 

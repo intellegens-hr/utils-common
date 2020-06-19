@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Intellegens.Commons.Search.FullTextSearch;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 namespace Intellegens.Commons.Search
 {
     public partial class GenericSearchService<T>
-        where T : class
+        where T : class, new()
     {
         private readonly IGenericSearchConfig genericSearchConfig;
 
@@ -24,6 +25,8 @@ namespace Intellegens.Commons.Search
 
         public Task<List<T>> Search(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => Search(sourceData.AsQueryable(), searchRequest);
+
+        public List<string> FullTextSearchPaths { get; set; } = FullTextSearchExtensions.GetFullTextSearchPaths<T>();
 
         /// <summary>
         /// Build search query from SearchRequest object

@@ -9,7 +9,7 @@ using System.Linq.Dynamic.Core;
 namespace Intellegens.Commons.Search
 {
     public partial class GenericSearchService<T>
-        where T : class
+        where T : class, new()
     {
         private enum LogicalOperators { AND, OR }
 
@@ -320,7 +320,7 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="filterStringValue"></param>
         /// <returns></returns>
@@ -331,6 +331,22 @@ namespace Intellegens.Commons.Search
                 .Replace("_", "\\_")
                 .Replace("*", "%")
                 .Replace("?", "_");
+        }
+
+        private (string expression, object[] arguments) GetFullTextSearchExpression(SearchFilter filter, LogicalOperators logicalOperator)
+        {
+            var expressions = new List<(string expression, object[] arguments)>();
+
+            foreach (var path in FullTextSearchPaths)
+            {
+                var pathExpression = filter.Values
+                    .Select(x => GetLikeExpression(path, $"%{x}%"))
+                    .Select(x => (x.expression, new List<object> { x.parameter }.ToArray()));
+                expressions.Add(CombineQueryPartsAndArguments(pathExpression, logicalOperator));
+            }
+
+            //OR must be between different path segments
+            return CombineQueryPartsAndArguments(expressions, LogicalOperators.OR);
         }
 
         /// <summary>
@@ -426,15 +442,22 @@ namespace Intellegens.Commons.Search
             {
                 var filter = filters[i];
 
-                // check if query contains any SQL injection potential
-                foreach (var filterKey in filter.Keys)
-                    ValidateDynamicLinqFieldName(filterKey);
+                if (filter.Operator == FilterMatchOperators.FULL_TEXT_SEARCH)
+                {
+                    yield return GetFullTextSearchExpression(filter, logicalOperator);
+                }
+                else
+                {
+                    // check if query contains any SQL injection potential
+                    foreach (var filterKey in filter.Keys)
+                        ValidateDynamicLinqFieldName(filterKey);
 
-                var expressions = filter.Keys
-                    .Select(x => GetFilterExpression(x, filter, logicalOperator))
-                    .ToList();
+                    var expressions = filter.Keys
+                        .Select(x => GetFilterExpression(x, filter, logicalOperator))
+                        .ToList();
 
-                yield return CombineQueryPartsAndArguments(expressions, logicalOperator);
+                    yield return CombineQueryPartsAndArguments(expressions, logicalOperator);
+                }
             };
         }
     }

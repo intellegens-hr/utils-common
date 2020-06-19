@@ -32,13 +32,14 @@ export class ApiSearchRequestFilterModel extends EnTT {
   // tslint:disable-next-line: variable-name
   //TODO: SA JUROM VIDJETI!!! Šaljemo li kao string ...
   public static Operators = {
-    STRING_CONTAINS: 0,
-    STRING_WILDCARD: 1,
-    EQUALS: 2,
+    EQUALS: 0,
+    STRING_CONTAINS: 1,
+    STRING_WILDCARD: 2,
     LESS_THAN: 3,
     LESS_THAN_OR_EQUAL_TO: 4,
     GREATER_THAN: 5,
-    GREATER_THAN_OR_EQUAL_TO: 6
+    GREATER_THAN_OR_EQUAL_TO: 6,
+    FULL_TEXT_SEARCH: 7
   };
 
   constructor () { super(); super.entt(); }

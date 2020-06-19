@@ -3,7 +3,7 @@ using Intellegens.Commons.Tests.SearchTests.Setup;
 
 namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
 {
-    public class SearchTestsAutomapperSqlite : SearchTestsAutomapperAbstract
+    public class SearchTestsAutomapperSqlite : Entity2DtoSearchServiceTestAbstract
     {
         public SearchTestsAutomapperSqlite() : base(new SearchDbContextSqlite(), SearchDatabaseProviders.SQLITE)
         {

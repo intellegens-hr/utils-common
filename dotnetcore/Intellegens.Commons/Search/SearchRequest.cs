@@ -4,13 +4,14 @@ namespace Intellegens.Commons.Search
 {
     public enum FilterMatchOperators
     {
+        EQUALS,
         STRING_CONTAINS,
         STRING_WILDCARD,
-        EQUALS,
         LESS_THAN,
         LESS_THAN_OR_EQUAL_TO,
         GREATER_THAN,
-        GREATER_THAN_OR_EQUAL_TO
+        GREATER_THAN_OR_EQUAL_TO,
+        FULL_TEXT_SEARCH
     }
 
     public class SearchRequest
@@ -19,7 +20,7 @@ namespace Intellegens.Commons.Search
         public int Limit { get; set; } = 10; // Number of records to return
 
         public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>(); // AND
-        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); // (OR)
+        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); // OR
         public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
     }
 
