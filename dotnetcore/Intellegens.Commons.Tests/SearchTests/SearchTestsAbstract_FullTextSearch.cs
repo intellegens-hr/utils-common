@@ -15,6 +15,8 @@ namespace Intellegens.Commons.Tests.SearchTests
             var query = await GenerateTestDataAndFilterQuery(5);
             var entity = await query.FirstAsync();
 
+            var textToSearch = entity.Text.Substring(0, 4);
+
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
@@ -23,12 +25,12 @@ namespace Intellegens.Commons.Tests.SearchTests
                     new SearchFilter
                     {
                         Operator = FilterMatchOperators.FULL_TEXT_SEARCH,
-                        Values = new List<string>{"y"}
+                        Values = new List<string>{ textToSearch }
                     }
                 }
             };
 
-            var expectedCount = query.Where(x =>x.Text.Contains("y") || x.TestingSessionId.Contains("y")).Count();
+            var expectedCount = query.Where(x => x.Text.Contains(textToSearch) || x.TestingSessionId.Contains(textToSearch)).Count();
             var data = await searchService.Search(query, searchRequest);
 
             Assert.True(data.Count == expectedCount);

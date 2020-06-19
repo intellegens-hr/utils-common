@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Search
 {
+    /// <summary>
+    /// Generic search services works on any IQueryable and provides simple (dynamic) filtering, search and ordering features on it
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public partial class GenericSearchService<T>
         where T : class, new()
     {
@@ -26,7 +30,10 @@ namespace Intellegens.Commons.Search
         public Task<List<T>> Search(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => Search(sourceData.AsQueryable(), searchRequest);
 
-        public List<string> FullTextSearchPaths { get; set; } = FullTextSearchExtensions.GetFullTextSearchPaths<T>();
+        /// <summary>
+        /// When using full-text search, this list will contain all required paths to compare
+        /// </summary>
+        public List<string> FullTextSearchPaths { get; internal set; } = FullTextSearchExtensions.GetFullTextSearchPaths<T>();
 
         /// <summary>
         /// Build search query from SearchRequest object

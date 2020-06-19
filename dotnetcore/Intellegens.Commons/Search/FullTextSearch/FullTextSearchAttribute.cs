@@ -22,7 +22,7 @@ namespace Intellegens.Commons.Search.FullTextSearch
         /// <summary>
         /// If property is of complex type, specify which properties can be targeted
         /// </summary>
-        /// <param name="propertiesCsv"></param>
+        /// <param name="propertiesCsv">Comma separated list of property names. E.g. "Title,Description"</param>
         public FullTextSearchAttribute(string propertiesCsv)
         {
             TargetedProperties = propertiesCsv.Split(',').ToList();

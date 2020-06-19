@@ -2,6 +2,9 @@
 
 namespace Intellegens.Commons.Search
 {
+    /// <summary>
+    /// Enum with all possible (implemented) filter operators
+    /// </summary>
     public enum FilterMatchOperators
     {
         EQUALS,
@@ -14,15 +17,36 @@ namespace Intellegens.Commons.Search
         FULL_TEXT_SEARCH
     }
 
+    /// <summary>
+    /// Used to specify filter, search and order parameteres when using GenericSearchService
+    /// </summary>
     public class SearchRequest
     {
-        public int Offset { get; set; } = 0; // Starting record
-        public int Limit { get; set; } = 10; // Number of records to return
+        /// <summary>
+        /// Number of record to skip
+        /// </summary>
+        public int Offset { get; set; } = 0;
 
-        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>(); // AND
-        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); // OR
+        /// <summary>
+        /// Number of records to return
+        /// </summary>
+        public int Limit { get; set; } = 10;
+
+        /// <summary>
+        /// Filters have AND operator between them
+        /// </summary>
+        public List<SearchFilter> Filters { get; set; } = new List<SearchFilter>();
+        /// <summary>
+        /// Search have OR operator between them
+        /// </summary>
+        public List<SearchFilter> Search { get; set; } = new List<SearchFilter>(); 
+        
+        /// <summary>
+        /// Sort definition, currently only 1 order is possible, others are ignored
+        /// </summary>
         public List<SearchOrder> Ordering { get; set; } = new List<SearchOrder>();
     }
+
 
     public class SearchFilter
     {
@@ -32,14 +56,24 @@ namespace Intellegens.Commons.Search
         public static SearchFilter Equal(string key, string value)
             => new SearchFilter { Keys = new List<string> { key }, Values = new List<string> { value }, Operator = FilterMatchOperators.EQUALS };
 
+        /// <summary>
+        /// List of keys (properties) to match
+        /// </summary>
         public List<string> Keys { get; set; }
 
-        //For future's sake, will define type of filtering
+        /// <summary>
+        /// Filter operator
+        /// </summary>
         public FilterMatchOperators Operator { get; set; } = FilterMatchOperators.STRING_CONTAINS;
 
+        /// <summary>
+        /// Should entire filter expression be negated
+        /// </summary>
         public bool NegateExpression { get; set; } = false;
 
-        // search value(s)
+        /// <summary>
+        /// Values to match
+        /// </summary>
         public List<string> Values { get; set; }
     }
 
@@ -59,6 +93,9 @@ namespace Intellegens.Commons.Search
                 Key = fieldName
             };
 
+        /// <summary>
+        /// Order key (property)
+        /// </summary>
         public string Key { get; set; }
         public bool Ascending { get; set; } = true;
     }

@@ -83,7 +83,7 @@ namespace Intellegens.Commons.Search
                 .ToList();
 
         /// <summary>
-        ///
+        /// Translate all filter/search/order paths specified on DTO and translate them to entity paths
         /// </summary>
         /// <param name="dtoSearchRequest"></param>
         /// <returns></returns>

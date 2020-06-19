@@ -66,13 +66,14 @@ public class SearchFilter
     // Keys to filter values by
     public List<string> Key { get; set; }
     
+    // EQUALS
     // STRING_CONTAINS
     // STRING_MATCH_WILDCARD
-    // EQUALS
     // LESS_THAN
     // LESS_THAN_OR_EQUAL_TO
     // GREATER_THAN
     // GREATER_THAN_OR_EQUAL_TO
+    // FULL_TEXT_SEARCH
     public FilterMatchOperators Operator { get; set; }
 
     public bool NegateExpression { get; set; } 
@@ -92,6 +93,47 @@ As seen above, basic search request consists of following elements:
 - filters - multiple filters with AND operator between them
 - search - multiple filters with OR operator between them
 - ordering - define orderBy
+
+### Full-text search
+
+As seen in `SearchFilter` class, various operators can be used in similar way. One specific operator is `FULL_TEXT_SEARCH`. 
+
+Full text search works in following way:
+- when requested, service will look for all properties which have specified `FullTextSearch` attribute and automatically do filter/search by these properties
+- if no `FullTextSearch` attributes are defined on class, all string properties will be taken
+
+#### FullTextSearchAttribute
+`FullTextSearchAttribute` can be defined on any property. 
+If target property is class, this attribute optionally takes string argument which represents comma-separated list of properties which should be used when doing full-text search
+
+Example:
+```csharp
+public class ParentClass
+{
+    [FullTextSearch]
+    public string Name { get; set; }
+
+    public string Title { get; set; }
+
+    [FullTextSearch("Title")]
+    public ChildClass Child { get; set; }
+}
+
+public class ChildClass
+{
+    public string Name { get; set; }
+    public string Title { get; set; }
+}
+```
+
+When full-text search is requeste on `ParentClass`, following properties will be searched:
+- `Name`
+- `Child.Title`
+
+In case `FullTextSearch` attribute on `Child` property didn't have argument specified, following properties would be searched:
+- `Name`
+- `Child.Name`
+- `Child.Title`
 
 ### Examples
 
