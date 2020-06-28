@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -19,9 +20,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2))
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2))
                 }
             };
 
@@ -38,9 +39,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.Text), entity.Text)
+                    SearchCriteria.Equal(nameof(SearchTestEntity.Text), entity.Text)
                 }
             };
 
@@ -58,9 +59,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("Parent.TestingSessionId", entity.TestingSessionId)
+                    SearchCriteria.Equal("Parent.TestingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -82,9 +83,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("parent.testingSessionId", entity.TestingSessionId)
+                    SearchCriteria.Equal("parent.testingSessionId", entity.TestingSessionId)
                 }
             };
 
@@ -105,10 +106,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("Children.TestingSessionId", entity.TestingSessionId),
-                    SearchFilter.Equal("Numeric", entity.Numeric.ToString())
+                    SearchCriteria.Equal("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchCriteria.Equal("Numeric", entity.Numeric.ToString())
                 }
             };
 
@@ -129,10 +130,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch("Children.TestingSessionId", entity.TestingSessionId),
-                    SearchFilter.PartialMatch("Numeric", entity.Numeric.ToString())
+                    SearchCriteria.PartialMatch("Children.TestingSessionId", entity.TestingSessionId),
+                    SearchCriteria.PartialMatch("Numeric", entity.Numeric.ToString())
                 }
             };
 
@@ -154,9 +155,9 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
                         Keys = new List<string>{ "Parent.TestingSessionId" },
                         Values = null

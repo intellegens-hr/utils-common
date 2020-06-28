@@ -1,5 +1,5 @@
 ﻿using Intellegens.Commons.Results;
-using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;

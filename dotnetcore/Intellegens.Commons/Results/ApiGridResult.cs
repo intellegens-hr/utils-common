@@ -1,4 +1,4 @@
-﻿using Intellegens.Commons.Search;
+﻿using Intellegens.Commons.Search.Models;
 
 namespace Intellegens.Commons.Results
 {

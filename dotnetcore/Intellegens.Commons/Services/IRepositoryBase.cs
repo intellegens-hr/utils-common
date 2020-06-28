@@ -1,5 +1,5 @@
 ﻿using Intellegens.Commons.Results;
-using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

@@ -163,6 +163,10 @@
           }
         }
       }
-    }},
-  "defaultProject": "ngz-common"
+    }
+  },
+  "defaultProject": "ngz-common",
+  "cli": {
+    "analytics": "4e66ab74-35cb-47d6-8044-e6e3451b3f58"
+  }
 }

@@ -1,4 +1,4 @@
-using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -19,10 +19,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2)),
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId.Substring(0, 2))
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 2)),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId.Substring(0, 2))
                 }
             };
 
@@ -39,10 +39,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.Text), entity.Text),
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId.Substring(0, 2))
+                    SearchCriteria.Equal(nameof(SearchTestEntity.Text), entity.Text),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId.Substring(0, 2))
                 }
             };
 
@@ -59,11 +59,12 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Search = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("Id", entities[0].Id.ToString()),
-                    SearchFilter.Equal("Id", entities[1].Id.ToString())
-                }
+                    SearchCriteria.Equal("Id", entities[0].Id.ToString()),
+                    SearchCriteria.Equal("Id", entities[1].Id.ToString())
+                },
+                CriteriaLogic = LogicOperators.ANY
             };
 
             var data = await searchService.Search(query, searchRequest);
@@ -79,10 +80,10 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToUpper()),
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToLower())
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToUpper()),
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.Text), entity.Text.Substring(0, 16).ToLower())
                 }
             };
 

@@ -172,5 +172,29 @@ namespace Intellegens.Commons.Types
                 }.Contains(type) ||
                 Convert.GetTypeCode(type) != TypeCode.Object;
         }
+
+        /// <summary>
+        /// Detects if type is nullable and what is it's base type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static (bool isNullable, Type resolvedType) ResolveNullableType(this Type type)
+        {
+            var returnType = type;
+
+            var nullableType = Nullable.GetUnderlyingType(returnType);
+            var isNullableType = false;
+            if (nullableType != null)
+            {
+                returnType = nullableType;
+                isNullableType = true;
+            }
+
+            // we'll have to check for NULL values, it's important to identify if type can be null
+            if (!isNullableType && returnType == typeof(string))
+                isNullableType = true;
+
+            return (isNullableType, returnType);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -23,62 +24,66 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest1 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
-                        Operator = FilterMatchOperators.GREATER_THAN,
+                        Operator = Operators.GREATER_THAN,
                         Values = new List<string>{ minDate.ToString("o") }
                     }
-                }
+                },
+                CriteriaLogic = LogicOperators.ALL
             };
 
             var searchRequest2 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         Values = new List<string>{ minDate.ToString("o") }
                     }
-                }
+                },
+                CriteriaLogic = LogicOperators.ALL
             };
 
             var searchRequest3 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
-                        Operator = FilterMatchOperators.LESS_THAN_OR_EQUAL_TO,
+                        Operator = Operators.LESS_THAN_OR_EQUAL_TO,
                         Values = new List<string>{ minDate.ToString("o") }
                     }
-                }
+                },
+                CriteriaLogic = LogicOperators.ALL
             };
 
             var searchRequest4 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         NegateExpression = true,
                         Values = new List<string>{ minDate.ToString("o") }
                     }
-                }
+                },
+                CriteriaLogic = LogicOperators.ALL
             };
 
             var data1 = await searchService.Search(query, searchRequest1);
@@ -104,13 +109,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest1 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Decimal ) },
-                        Operator = FilterMatchOperators.GREATER_THAN,
+                        Operator = Operators.GREATER_THAN,
                         Values = new List<string>{ minDecimal }
                     }
                 }
@@ -119,13 +124,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest2 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Decimal) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         Values = new List<string>{ minDecimal }
                     }
                 }
@@ -134,13 +139,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest3 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Decimal) },
-                        Operator = FilterMatchOperators.LESS_THAN_OR_EQUAL_TO,
+                        Operator = Operators.LESS_THAN_OR_EQUAL_TO,
                         Values = new List<string>{ minDecimal }
                     }
                 }
@@ -149,13 +154,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest4 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Decimal) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         NegateExpression = true,
                         Values = new List<string>{ minDecimal }
                     }
@@ -185,13 +190,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest1 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text ) },
-                        Operator = FilterMatchOperators.GREATER_THAN,
+                        Operator = Operators.GREATER_THAN,
                         Values = new List<string>{ minText }
                     }
                 }
@@ -200,13 +205,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest2 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         Values = new List<string>{ minText }
                     }
                 }
@@ -215,13 +220,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest3 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text) },
-                        Operator = FilterMatchOperators.LESS_THAN_OR_EQUAL_TO,
+                        Operator = Operators.LESS_THAN_OR_EQUAL_TO,
                         Values = new List<string>{ minText }
                     }
                 }
@@ -230,13 +235,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest4 = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text) },
-                        Operator = FilterMatchOperators.LESS_THAN,
+                        Operator = Operators.LESS_THAN,
                         NegateExpression = true,
                         Values = new List<string>{ minText }
                     }
@@ -267,13 +272,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text ) },
-                        Operator = FilterMatchOperators.STRING_WILDCARD,
+                        Operator = Operators.STRING_WILDCARD,
                         Values = new List<string>{ wildcardExpression }
                     }
                 }
@@ -299,13 +304,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text ) },
-                        Operator = FilterMatchOperators.STRING_WILDCARD,
+                        Operator = Operators.STRING_WILDCARD,
                         Values = new List<string>{ wildcardExpression }
                     }
                 }
@@ -331,13 +336,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text ) },
-                        Operator = FilterMatchOperators.STRING_WILDCARD,
+                        Operator = Operators.STRING_WILDCARD,
                         Values = new List<string>{ wildcardExpression }
                     }
                 }
@@ -361,13 +366,13 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
-                    new SearchFilter
+                    SearchCriteria.Equal(nameof(SearchTestEntity.TestingSessionId), entities.First().TestingSessionId),
+                    new SearchCriteria
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text ) },
-                        Operator = FilterMatchOperators.STRING_WILDCARD,
+                        Operator = Operators.STRING_WILDCARD,
                         Values = new List<string>{ wildcardExpression }
                     }
                 }

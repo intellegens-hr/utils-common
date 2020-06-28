@@ -1,5 +1,6 @@
 using Bogus;
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.Entity2DtoSearchServiceTests.Setup;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
@@ -121,9 +122,9 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntityDto.Text), dto.Text.Substring(0, 2))
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntityDto.Text), dto.Text.Substring(0, 2))
                 }
             };
 
@@ -140,9 +141,9 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal(nameof(SearchTestEntityDto.Text), dto.Text)
+                    SearchCriteria.Equal(nameof(SearchTestEntityDto.Text), dto.Text)
                 }
             };
 
@@ -160,9 +161,9 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("ParentDto.TestingSessionId", dto.TestingSessionId)
+                    SearchCriteria.Equal("ParentDto.TestingSessionId", dto.TestingSessionId)
                 }
             };
 
@@ -184,9 +185,9 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("parentDto.testingSessionId", dto.TestingSessionId)
+                    SearchCriteria.Equal("parentDto.testingSessionId", dto.TestingSessionId)
                 }
             };
 
@@ -207,10 +208,10 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.Equal("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
-                    SearchFilter.Equal("Numeric", dto.Numeric.ToString())
+                    SearchCriteria.Equal("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
+                    SearchCriteria.Equal("Numeric", dto.Numeric.ToString())
                 }
             };
 
@@ -231,10 +232,10 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
-                    SearchFilter.PartialMatch("Numeric", dto.Numeric.ToString())
+                    SearchCriteria.PartialMatch("ChildrenDtos.TestingSessionId", dto.TestingSessionId),
+                    SearchCriteria.PartialMatch("Numeric", dto.Numeric.ToString())
                 }
             };
 
@@ -256,12 +257,13 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
                         Keys = new List<string> { "ParentDto.TestingSessionId" },
-                        Values = null
+                        Values = null,
+                        Criteria = null
                     }
                 }
             };
@@ -285,11 +287,11 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 100,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch($"{nameof(SearchTestEntityDto.ChildrenDtos)}.TestingSessionId", entity.TestingSessionId)
+                    SearchCriteria.PartialMatch($"{nameof(SearchTestEntityDto.ChildrenDtos)}.TestingSessionId", entity.TestingSessionId)
                 },
-                Ordering = new List<SearchOrder>
+                Order = new List<SearchOrder>
                 {
                     SearchOrder.AsAscending($"{nameof(SearchTestEntityDto.ChildrenDtos)}.ParentDto.Date")
                 }
@@ -312,11 +314,11 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var searchRequest = new SearchRequest
             {
                 Limit = 20,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Operator = FilterMatchOperators.FULL_TEXT_SEARCH,
+                        Operator = Operators.FULL_TEXT_SEARCH,
                         Values = new List<string>{ textToSearch }
                     }
                 }

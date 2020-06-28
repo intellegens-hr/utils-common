@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,17 +21,17 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 5,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    new SearchFilter
+                    new SearchCriteria
                     {
-                        Operator = FilterMatchOperators.FULL_TEXT_SEARCH,
+                        Operator = Operators.FULL_TEXT_SEARCH,
                         Values = new List<string>{ textToSearch }
                     }
                 }
             };
 
-            var expectedCount = query.Where(x => x.Text.Contains(textToSearch) || x.TestingSessionId.Contains(textToSearch)).Count();
+            var expectedCount = query.ToList().Where(x => x.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase) || x.TestingSessionId.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)).Count();
             var data = await searchService.Search(query, searchRequest);
 
             Assert.True(data.Count == expectedCount);

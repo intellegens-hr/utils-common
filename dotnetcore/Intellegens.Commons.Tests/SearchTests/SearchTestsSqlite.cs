@@ -1,4 +1,5 @@
 using Intellegens.Commons.Search;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -25,11 +26,11 @@ namespace Intellegens.Commons.Tests.SearchTests
             var searchRequest = new SearchRequest
             {
                 Limit = 100,
-                Filters = new List<SearchFilter>
+                Criteria = new List<SearchCriteria>
                 {
-                    SearchFilter.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
+                    SearchCriteria.PartialMatch(nameof(SearchTestEntity.TestingSessionId), entity.TestingSessionId)
                 },
-                Ordering = new List<SearchOrder>
+                Order = new List<SearchOrder>
                 {
                     SearchOrder.AsAscending("Sibling.Id")
                 }
@@ -43,7 +44,6 @@ namespace Intellegens.Commons.Tests.SearchTests
 
         public override async Task Comparison_operator_should_work_with_numbers()
         {
-
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Intellegens.Commons.Search.FullTextSearch;
+using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Types;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -82,6 +83,21 @@ namespace Intellegens.Commons.Search
                 .Select(x => TranslateDtoToEntityPath(x))
                 .ToList();
 
+        private SearchCriteria TranslateSearchCriteriaFromDtoToEntity(SearchCriteria searchCriteria)
+        {
+            return new SearchCriteria
+            {
+                Keys = TranslateDtoToEntityPath(searchCriteria.Keys),
+                KeysLogic = searchCriteria.KeysLogic,
+                NegateExpression = searchCriteria.NegateExpression,
+                Operator = searchCriteria.Operator,
+                Values = searchCriteria.Values,
+                ValuesLogic = searchCriteria.ValuesLogic,
+                Criteria = searchCriteria.Criteria?.Select(x => TranslateSearchCriteriaFromDtoToEntity(x)).ToList() ?? new List<SearchCriteria>(),
+                CriteriaLogic = searchCriteria.CriteriaLogic
+            };
+        }
+
         /// <summary>
         /// Translate all filter/search/order paths specified on DTO and translate them to entity paths
         /// </summary>
@@ -94,28 +110,24 @@ namespace Intellegens.Commons.Search
             {
                 Offset = dtoSearchRequest.Offset,
                 Limit = dtoSearchRequest.Limit,
-                Filters = dtoSearchRequest
-                            .Filters
-                            .Select(x => new SearchFilter
-                            {
-                                Keys = TranslateDtoToEntityPath(x.Keys),
-                                NegateExpression = x.NegateExpression,
-                                Operator = x.Operator,
-                                Values = x.Values
-                            })
+
+                Keys = dtoSearchRequest.Keys.Select(x => TranslateDtoToEntityPath(x)).ToList(),
+                KeysLogic = dtoSearchRequest.KeysLogic,
+                Values = dtoSearchRequest.Values,
+                ValuesLogic = dtoSearchRequest.ValuesLogic,
+
+                Operator = dtoSearchRequest.Operator,
+                NegateExpression = dtoSearchRequest.NegateExpression,
+
+                Criteria = dtoSearchRequest
+                            .Criteria
+                            .Select(x => TranslateSearchCriteriaFromDtoToEntity(x))
                             .ToList(),
-                Search = dtoSearchRequest
-                            .Search
-                            .Select(x => new SearchFilter
-                            {
-                                Keys = TranslateDtoToEntityPath(x.Keys),
-                                NegateExpression = x.NegateExpression,
-                                Operator = x.Operator,
-                                Values = x.Values
-                            })
-                            .ToList(),
-                Ordering = dtoSearchRequest
-                            .Ordering
+
+                CriteriaLogic = dtoSearchRequest.CriteriaLogic,
+
+                Order = dtoSearchRequest
+                            .Order
                             .Select(x => new SearchOrder
                             {
                                 Ascending = x.Ascending,

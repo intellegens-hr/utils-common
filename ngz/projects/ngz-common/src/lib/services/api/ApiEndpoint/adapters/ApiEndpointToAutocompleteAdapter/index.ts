@@ -10,7 +10,7 @@ import { ApiEndpointFactory } from '../../';
 import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 // Import data models
-import { ApiSearchRequestOrderModel, ApiSearchRequestFilterModel } from '../../../../../data';
+import { ApiSearchRequestOrderModel, ApiSearchRequestCriteriaModel, LogicOperators, Operators } from '../../../../../data';
 
 /**
  * API Endpoint to Autocomplete component adapter (internal implementation)
@@ -96,29 +96,39 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
   protected _processChanged (value: any) {
     // Update require filters
     const excludedIds = (this._excludeIds ? (this._excludeIds instanceof Function ? this._excludeIds() : this._excludeIds) : {});
+    this._req.criteria = [];
+
+    // Add criteria for excluding ids
     for (const key of Object.keys(excludedIds)) {
-      this._req.filters = excludedIds[key].map(excludedId => {
-        const filter = new ApiSearchRequestFilterModel();
-        filter.keys = [key];
-        filter.operator = ApiSearchRequestFilterModel.Operators.STRING_CONTAINS;
-        filter.negateExpression = true;
-        filter.values = [excludedId]
-        return filter;
-      });
+      // for NOT-IN given entity must NOT match any of the values provided so following logic is used:
+      // NOT ((key == value1) OR (key == value2))
+      const filter = new ApiSearchRequestCriteriaModel();
+      filter.keys = [key];
+      filter.values = excludedIds[key];
+      filter.operator = Operators.EQUALS;
+      filter.valuesLogic = LogicOperators.ANY;
+      filter.negateExpression = true;
+
+      this._req.criteria.push(filter);
     }
     // Update request search
+    // Construct criteria which will contain all search condition
     if (value) {
-      this._req.search = this._searchBy.map(searchBy => {
-        const search = new ApiSearchRequestFilterModel();
+      const searchCriteria = new ApiSearchRequestCriteriaModel();
+      searchCriteria.criteriaLogic = LogicOperators.ANY;
+
+      searchCriteria.criteria = this._searchBy.map(searchBy => {
+        const search = new ApiSearchRequestCriteriaModel();
         search.keys = [searchBy];
         search.values = [value, ...(value.indexOf(' ') !== -1 ? value.split(' ') : [])]
         return search;
       });
+      this._req.criteria.push(searchCriteria);
     } else {
-      this._req.search = [];
+      this._req.criteria = [];
     }
     // Update request ordering
-    this._req.ordering = this._orderBy.map(orderBy => {
+    this._req.order = this._orderBy.map(orderBy => {
       const ordering = new ApiSearchRequestOrderModel();
       ordering.key = (orderBy.startsWith('!') ? orderBy.substr(1) : orderBy);
       ordering.ascending = !orderBy.startsWith('!');

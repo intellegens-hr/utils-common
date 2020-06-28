@@ -1,4 +1,5 @@
 ﻿using Intellegens.Commons.Search.FullTextSearch;
+using Intellegens.Commons.Search.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,16 +45,7 @@ namespace Intellegens.Commons.Search
         public IQueryable<T> FilterQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             // get all defined filters/search
-            var filtersParsed = GetQueryPartsAndParams(searchRequest.Filters, LogicalOperators.AND);
-            var searchParsed = GetQueryPartsAndParams(searchRequest.Search, LogicalOperators.OR);
-
-            // combine all query parts into single
-            var filtersCombined = CombineQueryPartsAndArguments(filtersParsed, LogicalOperators.AND);
-            var searchCombined = CombineQueryPartsAndArguments(searchParsed, LogicalOperators.OR);
-
-            // combine filter and search
-            var queryParts = new List<(string expression, object[] arguments)> { filtersCombined, searchCombined };
-            var (expression, arguments) = CombineQueryPartsAndArguments(queryParts, LogicalOperators.AND);
+            var (expression, arguments) = GenerateWhereCriteria(searchRequest);
 
             if (!string.IsNullOrEmpty(expression))
             {
@@ -105,9 +97,9 @@ namespace Intellegens.Commons.Search
 
             var entityKeyValue = GetPropertyValue(properties, keyColumn, entity);
 
-            if (searchRequest.Ordering.Any())
+            if (searchRequest.Order.Any())
             {
-                var order = searchRequest.Ordering.First();
+                var order = searchRequest.Order.First();
                 var queryOperator = order.Ascending ? "<" : ">";
 
                 var entityOrderColValue = GetPropertyValue(properties, order.Key, entity);

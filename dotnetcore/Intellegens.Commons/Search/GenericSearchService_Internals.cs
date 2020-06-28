@@ -1,4 +1,5 @@
-﻿using Intellegens.Commons.Types;
+﻿using Intellegens.Commons.Search.Models;
+using Intellegens.Commons.Types;
 using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
@@ -11,24 +12,22 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class, new()
     {
-        private enum LogicalOperators { AND, OR }
-
-        private readonly Dictionary<LogicalOperators, string> csharpOperatorsMap = new Dictionary<LogicalOperators, string>
+        private readonly Dictionary<LogicOperators, string> csharpOperatorsMap = new Dictionary<LogicOperators, string>
         {
-            { LogicalOperators.AND, "&&" },
-            { LogicalOperators.OR, "||" }
+            { LogicOperators.ALL, "&&" },
+            { LogicOperators.ANY, "||" }
         };
 
         /// <summary>
         /// Map between FilterMatchTypes enum and c sharp logical operators. Used when building expressions
         /// </summary>
-        private readonly Dictionary<FilterMatchOperators, string> filterMatchTypeToOperatorMap = new Dictionary<FilterMatchOperators, string>
+        private readonly Dictionary<Operators, string> filterMatchTypeToOperatorMap = new Dictionary<Operators, string>
         {
-            { FilterMatchOperators.EQUALS, "==" },
-            { FilterMatchOperators.LESS_THAN, "<" },
-            { FilterMatchOperators.LESS_THAN_OR_EQUAL_TO, "<=" },
-            { FilterMatchOperators.GREATER_THAN, ">" },
-            { FilterMatchOperators.GREATER_THAN_OR_EQUAL_TO, ">=" }
+            { Operators.EQUALS, "==" },
+            { Operators.LESS_THAN, "<" },
+            { Operators.LESS_THAN_OR_EQUAL_TO, "<=" },
+            { Operators.GREATER_THAN, ">" },
+            { Operators.GREATER_THAN_OR_EQUAL_TO, ">=" }
         };
 
         private const string parameterPlaceholder = "@@Parameter@@";
@@ -141,7 +140,7 @@ namespace Intellegens.Commons.Search
         protected IQueryable<T> OrderQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             var order = searchRequest
-                .Ordering
+                .Order
                 .Where(x => !string.IsNullOrEmpty(x.Key))
                 .ToList();
 
@@ -158,23 +157,73 @@ namespace Intellegens.Commons.Search
             return sourceData;
         }
 
-        private (bool isNullable, Type resolvedType) ResolveNullableType(Type type)
+        private bool IsSearchCriteriaEmpty(SearchCriteria searchCriteria)
         {
-            var returnType = type;
+            var keysOrValuesEmpty = !((searchCriteria.Keys?.Any() ?? false) || (searchCriteria.Values?.Any() ?? false));
+            var nestedFiltersEmpty = !(searchCriteria.Criteria?.Any() ?? false);
 
-            var nullableType = Nullable.GetUnderlyingType(returnType);
-            var isNullableType = false;
-            if (nullableType != null)
+            return keysOrValuesEmpty && nestedFiltersEmpty;
+        }
+
+        private (string expression, object[] parameters) GenerateWhereCriteria(SearchRequest searchRequest)
+        {
+            // if no filters specified
+            if (IsSearchCriteriaEmpty(searchRequest))
+                return ("", null);
+
+            return ProcessSearchCriteria(searchRequest);
+        }
+
+        private (string expression, object[] parameters) ProcessSearchCriteria(SearchCriteria searchCriteria)
+        {
+            var keysOrValuesDefined = (searchCriteria.Keys?.Any() ?? false) || (searchCriteria.Values?.Any() ?? false);
+            var nestedFiltersDefined = searchCriteria.Criteria?.Any() ?? false;
+
+            // if nested filters are defined and keys/values as well - keys and values will be treated as another SearchCriteria
+            if (keysOrValuesDefined && nestedFiltersDefined)
             {
-                returnType = nullableType;
-                isNullableType = true;
+                searchCriteria.Criteria.Add(new SearchCriteria
+                {
+                    Keys = searchCriteria.Keys,
+                    KeysLogic = searchCriteria.KeysLogic,
+                    Operator = searchCriteria.Operator,
+                    Values = searchCriteria.Values,
+                    ValuesLogic = searchCriteria.ValuesLogic
+                });
+            }
+            (string expression, object[] arguments) combinedQueryParts = ("", null);
+            if (nestedFiltersDefined)
+            {
+                var criterias = searchCriteria.Criteria.Select(x => ProcessSearchCriteria(x));
+                combinedQueryParts = CombineQueryPartsAndArguments(criterias, searchCriteria.CriteriaLogic);
+            }
+            else if (keysOrValuesDefined)
+            {
+                var values = searchCriteria.Values ?? new List<string>();
+
+                if (searchCriteria.Operator == Operators.FULL_TEXT_SEARCH)
+                {
+                    combinedQueryParts = GetFullTextSearchExpression(values, searchCriteria.ValuesLogic);
+                }
+                else
+                {
+                    var keys = searchCriteria.Keys ?? new List<string>();
+
+                    var expressions = keys
+                        .Select(key => GetFilterExpression(key, values, searchCriteria.Operator, searchCriteria.ValuesLogic));
+
+                    combinedQueryParts = CombineQueryPartsAndArguments(expressions, searchCriteria.KeysLogic);
+                }
             }
 
-            // we'll have to check for NULL values, it's important to identify if type can be null
-            if (!isNullableType && returnType == typeof(string))
-                isNullableType = true;
+            // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
+            if (!string.IsNullOrEmpty(combinedQueryParts.expression))
+            {
+                var operatorEquality = searchCriteria.NegateExpression ? "!" : "";
+                combinedQueryParts.expression = $" {operatorEquality}({combinedQueryParts.expression}) ";
+            }
 
-            return (isNullableType, returnType);
+            return combinedQueryParts;
         }
 
         /// <summary>
@@ -183,12 +232,12 @@ namespace Intellegens.Commons.Search
         /// <param name="filterKey"></param>
         /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
         /// <returns></returns>
-        private (string expression, object parameter) GetOperatorMatchExpression(string filterKey, FilterMatchOperators matchType, string currentFilterStringValue)
+        private (string expression, object parameter) GetOperatorMatchExpression(string filterKey, Operators matchType, string currentFilterStringValue)
         {
             var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(filterKey).ToList();
             var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
 
-            var (isNullable, resolvedType) = ResolveNullableType(filteredPropertyType);
+            var (isNullable, resolvedType) = filteredPropertyType.ResolveNullableType();
             filteredPropertyType = resolvedType;
 
             (bool filterHasInvalidValue, dynamic filterValue) = ParseFilterValue(filteredPropertyType, currentFilterStringValue);
@@ -234,7 +283,7 @@ namespace Intellegens.Commons.Search
             var filteredPropertyType = propertyChainInfo.Last().propertyInfo.PropertyType;
 
             // check if type can be null and resolve it's underlying type (in case Null<T>)
-            var (isNullableType, resolvedType) = ResolveNullableType(filteredPropertyType);
+            var (isNullableType, resolvedType) = filteredPropertyType.ResolveNullableType();
             filteredPropertyType = resolvedType;
 
             if (filteredPropertyType == typeof(bool))
@@ -333,20 +382,20 @@ namespace Intellegens.Commons.Search
                 .Replace("?", "_");
         }
 
-        private (string expression, object[] arguments) GetFullTextSearchExpression(SearchFilter filter, LogicalOperators logicalOperator)
+        private (string expression, object[] arguments) GetFullTextSearchExpression(List<string> values, LogicOperators logicalOperator)
         {
             var expressions = new List<(string expression, object[] arguments)>();
 
             foreach (var path in FullTextSearchPaths)
             {
-                var pathExpression = filter.Values
+                var pathExpression = values
                     .Select(x => GetLikeExpression(path, $"%{x}%"))
                     .Select(x => (x.expression, new List<object> { x.parameter }.ToArray()));
                 expressions.Add(CombineQueryPartsAndArguments(pathExpression, logicalOperator));
             }
 
-            //OR must be between different path segments
-            return CombineQueryPartsAndArguments(expressions, LogicalOperators.OR);
+            // OR must be between different path segments
+            return CombineQueryPartsAndArguments(expressions, LogicOperators.ANY);
         }
 
         /// <summary>
@@ -356,53 +405,46 @@ namespace Intellegens.Commons.Search
         /// <param name="filter"></param>
         /// <param name="filteredProperty"></param>
         /// <returns></returns>
-        private (string expression, object[] arguments) GetFilterExpression(string currentFilterKey, SearchFilter filter, LogicalOperators logicalOperator)
+        private (string expression, object[] arguments) GetFilterExpression(string filterKey, List<string> values, Operators searchOperator, LogicOperators logicOperator)
         {
+            ValidateDynamicLinqFieldName(filterKey);
+
             var arguments = new List<object>();
             var expressions = new List<string>();
 
-            if (filter?.Values != null && filter.Values.Any())
-                foreach (string filterStringValue in filter.Values)
+            foreach (string filterStringValue in values)
+            {
+                (string expression, object argument) matchResult;
+
+                switch (searchOperator)
                 {
-                    (string expression, object argument) matchResult;
+                    case Operators.STRING_CONTAINS:
+                        string likeExpression = $"%{filterStringValue}%";
+                        matchResult = GetLikeExpression(filterKey, likeExpression);
+                        break;
 
-                    switch (filter.Operator)
-                    {
-                        case FilterMatchOperators.STRING_CONTAINS:
-                            string likeExpression = $"%{filterStringValue}%";
-                            matchResult = GetLikeExpression(currentFilterKey, likeExpression);
-                            break;
+                    case Operators.STRING_WILDCARD:
+                        string wildcardExpression = GetWildcardLikeExpression(filterStringValue);
+                        matchResult = GetLikeExpression(filterKey, wildcardExpression);
+                        break;
 
-                        case FilterMatchOperators.STRING_WILDCARD:
-                            string wildcardExpression = GetWildcardLikeExpression(filterStringValue);
-                            matchResult = GetLikeExpression(currentFilterKey, wildcardExpression);
-                            break;
+                    case Operators.EQUALS:
+                    case Operators.GREATER_THAN:
+                    case Operators.GREATER_THAN_OR_EQUAL_TO:
+                    case Operators.LESS_THAN:
+                    case Operators.LESS_THAN_OR_EQUAL_TO:
+                        matchResult = GetOperatorMatchExpression(filterKey, searchOperator, filterStringValue);
+                        break;
 
-                        case FilterMatchOperators.EQUALS:
-                        case FilterMatchOperators.GREATER_THAN:
-                        case FilterMatchOperators.GREATER_THAN_OR_EQUAL_TO:
-                        case FilterMatchOperators.LESS_THAN:
-                        case FilterMatchOperators.LESS_THAN_OR_EQUAL_TO:
-                            matchResult = GetOperatorMatchExpression(currentFilterKey, filter.Operator, filterStringValue);
-                            break;
-
-                        default:
-                            throw new NotImplementedException();
-                    }
-
-                    expressions.Add(matchResult.expression);
-                    arguments.Add(matchResult.argument);
+                    default:
+                        throw new NotImplementedException();
                 }
 
-            var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicalOperator]} ", expressions);
-
-            // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
-            if (!string.IsNullOrEmpty(expressionsConcatenated))
-            {
-                var operatorEquality = filter.NegateExpression ? "!" : "";
-                expressionsConcatenated = $" {operatorEquality}({expressionsConcatenated}) ";
+                expressions.Add(matchResult.expression);
+                arguments.Add(matchResult.argument);
             }
 
+            var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicOperator]} ", expressions);
             return (expressionsConcatenated, arguments.ToArray());
         }
 
@@ -412,7 +454,7 @@ namespace Intellegens.Commons.Search
         /// <param name="queryParts">List containing expression/arguments pairs</param>
         /// <param name="separator">Separator to use for queries (AND/OR)</param>
         /// <returns>Single tuple containing expression and all arguments</returns>
-        private (string expression, object[] arguments) CombineQueryPartsAndArguments(IEnumerable<(string expression, object[] arguments)> queryParts, LogicalOperators logicalOperator)
+        private (string expression, object[] arguments) CombineQueryPartsAndArguments(IEnumerable<(string expression, object[] arguments)> queryParts, LogicOperators logicalOperator)
         {
             var parameters = new List<object>();
             string query = "";
@@ -427,38 +469,6 @@ namespace Intellegens.Commons.Search
             }
 
             return (query, parameters.ToArray());
-        }
-
-        /// <summary>
-        /// For each filter, builds expression and required parameter
-        /// </summary>
-        /// <param name="filters">List of filters to parse</param>
-        /// <param name="logicalOperator">Logical operator to use in expression (AND/OR)</param>
-        /// <returns></returns>
-        private IEnumerable<(string query, object[] queryParams)> GetQueryPartsAndParams(List<SearchFilter> filters, LogicalOperators logicalOperator)
-        {
-            // for each filter, get WHERE clause part and query parameters (if any)
-            for (int i = 0; i < filters.Count; i++)
-            {
-                var filter = filters[i];
-
-                if (filter.Operator == FilterMatchOperators.FULL_TEXT_SEARCH)
-                {
-                    yield return GetFullTextSearchExpression(filter, logicalOperator);
-                }
-                else
-                {
-                    // check if query contains any SQL injection potential
-                    foreach (var filterKey in filter.Keys)
-                        ValidateDynamicLinqFieldName(filterKey);
-
-                    var expressions = filter.Keys
-                        .Select(x => GetFilterExpression(x, filter, logicalOperator))
-                        .ToList();
-
-                    yield return CombineQueryPartsAndArguments(expressions, logicalOperator);
-                }
-            };
         }
     }
 }
