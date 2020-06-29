@@ -41,7 +41,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                                 Operator = Operators.EQUALS
                             },
                         },
-                        NegateExpression = true,
+                        Negate = true,
                         CriteriaLogic = LogicOperators.ALL
                     },
 
@@ -95,7 +95,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                         Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
                         Operator = Operators.EQUALS,
-                        NegateExpression = true
+                        Negate = true
                     }
                 },
                 CriteriaLogic = LogicOperators.ANY
@@ -121,7 +121,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                         Keys = new List<string>{ nameof(SearchTestEntity.Id) },
                         Operator = Operators.EQUALS,
                         Values = new List<string>{ entities[2].Id.ToString(), entities[3].Id.ToString() },
-                        NegateExpression = true
+                        Negate = true
                     }
                 }
             };

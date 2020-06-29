@@ -12,6 +12,8 @@ namespace Intellegens.Commons.Search.FullTextSearch
     {
         private const int MAX_RECURSION_DEPTH = 10;
 
+        private static readonly Dictionary<Type, List<string>> fullTextSearchPathsCache = new Dictionary<Type, List<string>>();
+
         /// <summary>
         /// For give type, parse possible search paths. It will be called recursivly
         /// </summary>
@@ -39,51 +41,48 @@ namespace Intellegens.Commons.Search.FullTextSearch
             {
                 paths.Add(pathPrefix);
             }
+            // In case type is enumerable, call this function again with underlying type
+            else if (type.IsIEnumerableType())
+            {
+                paths.AddRange(GetFullTextSearchPaths(type.GetIEnumerableGenericType(), propertiesToInclude, pathPrefix, depth));
+            }
             // if this is complex object and no properties where specified in propertiesToInclude argument,
             // parse all properties with full text attribute
             else if (fullTextAttributes.Any() && !propertiesToInclude.Any())
             {
                 foreach (var (property, attribute) in fullTextAttributes)
                 {
+                    var propType = property.PropertyType;
+                    if (propType.IsIEnumerableType())
+                        propType = propType.TransformToUnderlyingEnumerableTypeIfExists();
+
                     string newPathPrefix = $"{property.Name}";
                     if (!string.IsNullOrEmpty(pathPrefix))
                         newPathPrefix = $"{pathPrefix}.{newPathPrefix}";
 
-                    // FullTextAttribute has property TargetedProperties. If specified, only properties in that list should be taken, otherwise all
-                    // which have FullTextAttribute
-                    if (attribute.TargetedProperties.Any())
-                    {
-                        paths.AddRange(GetFullTextSearchPaths(property.PropertyType, attribute.TargetedProperties, newPathPrefix, depth: depth++));
-                    }
-                    else
-                    {
-                        paths.AddRange(GetFullTextSearchPaths(property.PropertyType, pathPrefix: newPathPrefix, depth: depth++));
-                    }
+                    paths.AddRange(GetFullTextSearchPaths(property.PropertyType, attribute.TargetedProperties, newPathPrefix, depth + 1));
                 }
-            }
-            // In case type is enumerable, call this function again with underlying type
-            else if (type.IsIEnumerableType())
-            {
-                GetFullTextSearchPaths(type.GetIEnumerableGenericType(), pathPrefix: pathPrefix, depth: depth);
             }
             // last possibility - if remaining path is empty, this is complex object and return it's string properties (default)
             // if remaining path is not empty, traverse further
             else
             {
-                var props = type.GetProperties();
+                var props = type.GetProperties().ToList();
 
-                props
-                    .Where(x => x.PropertyType == typeof(string))
-                    // if propertiesToInclude is specified - take only those properties
-                    .Where(x => !propertiesToInclude.Any() || propertiesToInclude.Select(y => y.ToUpper()).Contains(x.Name.ToUpper()))
-                    .ToList()
-                    .ForEach(x =>
+                // if propertiesToInclude are defined - take them
+                if (propertiesToInclude.Any())
+                    props = props.Where(x => propertiesToInclude.Contains(x.Name)).ToList();
+                // if not - take all string properties
+                else
+                    props = props.Where(x => x.PropertyType == typeof(string)).ToList();
+
+                props.ForEach(x =>
                     {
                         string newPathPrefix = x.Name;
                         if (!string.IsNullOrEmpty(pathPrefix))
                             newPathPrefix = $"{pathPrefix}.{newPathPrefix}";
 
-                        paths.AddRange(GetFullTextSearchPaths(x.PropertyType, pathPrefix: $"{newPathPrefix}", depth: depth++));
+                        paths.AddRange(GetFullTextSearchPaths(x.PropertyType, pathPrefix: $"{newPathPrefix}", depth: depth + 1));
                     });
             }
 
@@ -97,6 +96,16 @@ namespace Intellegens.Commons.Search.FullTextSearch
         /// <returns></returns>
         public static List<string> GetFullTextSearchPaths<T>()
             where T : class, new()
-            => GetFullTextSearchPaths(typeof(T));
+        {
+            var type = typeof(T);
+
+            if (!fullTextSearchPathsCache.ContainsKey(type))
+            {
+                lock (fullTextSearchPathsCache)
+                    fullTextSearchPathsCache[type] = GetFullTextSearchPaths(type);
+            }
+
+            return fullTextSearchPathsCache[type];
+        }
     }
 }

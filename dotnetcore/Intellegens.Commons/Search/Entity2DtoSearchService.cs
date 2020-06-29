@@ -26,14 +26,20 @@ namespace Intellegens.Commons.Search
         public Entity2DtoSearchService(IMapper mapper)
         {
             this.mapper = mapper;
-
-            if (searchService.FullTextSearchPaths.Any())
-                searchService.FullTextSearchPaths = TranslateDtoToEntityPath(FullTextSearchExtensions.GetFullTextSearchPaths<TDto>());
+            InitFullTextSearchPathTranslation();
         }
 
-        public Entity2DtoSearchService(IGenericSearchConfig genericSearchConfig, IMapper mapper) : this(mapper)
+        public Entity2DtoSearchService(IGenericSearchConfig genericSearchConfig, IMapper mapper)
         {
             searchService = new GenericSearchService<TEntity>(genericSearchConfig);
+            this.mapper = mapper;
+            InitFullTextSearchPathTranslation();
+        }
+
+        private void InitFullTextSearchPathTranslation()
+        {
+            if (searchService.FullTextSearchPaths.Any())
+                searchService.FullTextSearchPaths = TranslateDtoToEntityPath(FullTextSearchExtensions.GetFullTextSearchPaths<TDto>());
         }
 
         /// <summary>
@@ -89,7 +95,7 @@ namespace Intellegens.Commons.Search
             {
                 Keys = TranslateDtoToEntityPath(searchCriteria.Keys),
                 KeysLogic = searchCriteria.KeysLogic,
-                NegateExpression = searchCriteria.NegateExpression,
+                Negate = searchCriteria.Negate,
                 Operator = searchCriteria.Operator,
                 Values = searchCriteria.Values,
                 ValuesLogic = searchCriteria.ValuesLogic,
@@ -117,7 +123,7 @@ namespace Intellegens.Commons.Search
                 ValuesLogic = dtoSearchRequest.ValuesLogic,
 
                 Operator = dtoSearchRequest.Operator,
-                NegateExpression = dtoSearchRequest.NegateExpression,
+                Negate = dtoSearchRequest.Negate,
 
                 Criteria = dtoSearchRequest
                             .Criteria

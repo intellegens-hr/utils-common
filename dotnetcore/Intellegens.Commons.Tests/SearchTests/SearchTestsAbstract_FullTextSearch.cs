@@ -25,7 +25,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                 {
                     new SearchCriteria
                     {
-                        Operator = Operators.FULL_TEXT_SEARCH,
+                        Operator = Operators.FULL_TEXT_SEARCH_CONTAINS,
                         Values = new List<string>{ textToSearch }
                     }
                 }

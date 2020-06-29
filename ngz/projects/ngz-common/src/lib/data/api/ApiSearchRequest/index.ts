@@ -16,7 +16,8 @@ export enum Operators {
   LESS_THAN_OR_EQUAL_TO = 'LESS_THAN_OR_EQUAL_TO',
   GREATER_THAN = 'GREATER_THAN',
   GREATER_THAN_OR_EQUAL_TO = 'GREATER_THAN_OR_EQUAL_TO',
-  FULL_TEXT_SEARCH = 'FULL_TEXT_SEARCH'
+  FULL_TEXT_SEARCH_CONTAINS = 'FULL_TEXT_SEARCH_CONTAINS',
+  FULL_TEXT_SEARCH_WILDCARD = 'FULL_TEXT_SEARCH_WILDCARD'
 };
 
 export enum LogicOperators{
@@ -70,7 +71,7 @@ export class ApiSearchRequestCriteriaModel extends EnTT {
   /**
    * Direct or negated filtering comparison
    */
-  public negateExpression = false;
+  public negate = false;
   /**
    * Filtering operator being used
    */

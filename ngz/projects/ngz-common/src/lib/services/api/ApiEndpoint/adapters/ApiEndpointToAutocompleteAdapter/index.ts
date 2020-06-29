@@ -107,7 +107,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
       filter.values = excludedIds[key];
       filter.operator = Operators.EQUALS;
       filter.valuesLogic = LogicOperators.ANY;
-      filter.negateExpression = true;
+      filter.negate = true;
 
       this._req.criteria.push(filter);
     }

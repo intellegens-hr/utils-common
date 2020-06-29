@@ -201,9 +201,10 @@ namespace Intellegens.Commons.Search
             {
                 var values = searchCriteria.Values ?? new List<string>();
 
-                if (searchCriteria.Operator == Operators.FULL_TEXT_SEARCH)
+                bool isFullTextSearch = searchCriteria.Operator == Operators.FULL_TEXT_SEARCH_CONTAINS || searchCriteria.Operator == Operators.FULL_TEXT_SEARCH_WILDCARD;
+                if (isFullTextSearch)
                 {
-                    combinedQueryParts = GetFullTextSearchExpression(values, searchCriteria.ValuesLogic);
+                    combinedQueryParts = GetFullTextSearchExpression(values, searchCriteria.ValuesLogic, searchCriteria.Operator);
                 }
                 else
                 {
@@ -219,7 +220,7 @@ namespace Intellegens.Commons.Search
             // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
             if (!string.IsNullOrEmpty(combinedQueryParts.expression))
             {
-                var operatorEquality = searchCriteria.NegateExpression ? "!" : "";
+                var operatorEquality = searchCriteria.Negate ? "!" : "";
                 combinedQueryParts.expression = $" {operatorEquality}({combinedQueryParts.expression}) ";
             }
 
@@ -382,14 +383,30 @@ namespace Intellegens.Commons.Search
                 .Replace("?", "_");
         }
 
-        private (string expression, object[] arguments) GetFullTextSearchExpression(List<string> values, LogicOperators logicalOperator)
+        private string GetFullTextParameter(string value, Operators fullTextOperator)
+        {
+            if (fullTextOperator == Operators.FULL_TEXT_SEARCH_CONTAINS)
+            {
+                return $"%{value}%";
+            }
+            else if (fullTextOperator == Operators.FULL_TEXT_SEARCH_WILDCARD)
+            {
+                return GetWildcardLikeExpression(value);
+            }
+            else
+            {
+                throw new Exception("Invalid operator for full text search!");
+            }
+        }
+
+        private (string expression, object[] arguments) GetFullTextSearchExpression(List<string> values, LogicOperators logicalOperator, Operators fullTextOperator)
         {
             var expressions = new List<(string expression, object[] arguments)>();
 
             foreach (var path in FullTextSearchPaths)
             {
                 var pathExpression = values
-                    .Select(x => GetLikeExpression(path, $"%{x}%"))
+                    .Select(x => GetLikeExpression(path, GetFullTextParameter(x, fullTextOperator)))
                     .Select(x => (x.expression, new List<object> { x.parameter }.ToArray()));
                 expressions.Add(CombineQueryPartsAndArguments(pathExpression, logicalOperator));
             }

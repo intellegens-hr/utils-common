@@ -14,7 +14,8 @@ namespace Intellegens.Commons.Search.Models
         LESS_THAN_OR_EQUAL_TO,
         GREATER_THAN,
         GREATER_THAN_OR_EQUAL_TO,
-        FULL_TEXT_SEARCH
+        FULL_TEXT_SEARCH_CONTAINS,
+        FULL_TEXT_SEARCH_WILDCARD
     }
 
     public enum LogicOperators
@@ -41,7 +42,7 @@ namespace Intellegens.Commons.Search.Models
         public LogicOperators ValuesLogic { get; set; } = LogicOperators.ANY;
 
         public Operators Operator { get; set; } = Operators.STRING_CONTAINS;
-        public bool NegateExpression { get; set; }
+        public bool Negate { get; set; }
 
         public List<SearchCriteria> Criteria { get; set; } = new List<SearchCriteria>();
         public LogicOperators CriteriaLogic { get; set; } = LogicOperators.ALL;

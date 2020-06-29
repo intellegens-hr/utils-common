@@ -79,7 +79,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
                         Operator = Operators.LESS_THAN,
-                        NegateExpression = true,
+                        Negate = true,
                         Values = new List<string>{ minDate.ToString("o") }
                     }
                 },
@@ -161,7 +161,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Decimal) },
                         Operator = Operators.LESS_THAN,
-                        NegateExpression = true,
+                        Negate = true,
                         Values = new List<string>{ minDecimal }
                     }
                 }
@@ -242,7 +242,7 @@ namespace Intellegens.Commons.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Text) },
                         Operator = Operators.LESS_THAN,
-                        NegateExpression = true,
+                        Negate = true,
                         Values = new List<string>{ minText }
                     }
                 }

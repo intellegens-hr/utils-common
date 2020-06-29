@@ -318,7 +318,7 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
                 {
                     new SearchCriteria
                     {
-                        Operator = Operators.FULL_TEXT_SEARCH,
+                        Operator = Operators.FULL_TEXT_SEARCH_CONTAINS,
                         Values = new List<string>{ textToSearch }
                     }
                 }
