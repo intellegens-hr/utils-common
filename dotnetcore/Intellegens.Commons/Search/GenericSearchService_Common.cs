@@ -170,8 +170,12 @@ namespace Intellegens.Commons.Search
                 .Replace("?", "_");
         }
 
-        
-
+        /// <summary>
+        /// Will go through entire string expression (it.prop1 == @@Parameter@@ && it.prop2 == @@Parameter@@)
+        /// and replace all @@Parameter@@ with @P0, @P1, ...
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         private static string ReplaceParametersPlaceholder(string expression)
         {
             // expression contains parameter placeholder defined in const parameterPlaceholder

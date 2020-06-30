@@ -28,6 +28,12 @@ namespace Intellegens.Commons.Search
             this.genericSearchConfig = genericSearchConfig;
         }
 
+        /// <summary>
+        /// Search on Enumerable type
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public Task<List<T>> Search(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => Search(sourceData.AsQueryable(), searchRequest);
 
@@ -58,12 +64,24 @@ namespace Intellegens.Commons.Search
             return sourceData;
         }
 
+        /// <summary>
+        /// Search on Queryable data source
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public Task<List<T>> Search(IQueryable<T> sourceData, SearchRequest searchRequest)
             => FilterQuery(sourceData, searchRequest)
                 .Skip(searchRequest.Offset)
                 .Take(searchRequest.Limit)
                 .ToListAsync();
 
+        /// <summary>
+        /// Search and return total matching record count
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public async Task<(int count, List<T> data)> SearchAndCount(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
             var count = await FilterQuery(sourceData, searchRequest).CountAsync();
@@ -72,12 +90,33 @@ namespace Intellegens.Commons.Search
             return (count, data);
         }
 
+        /// <summary>
+        /// Search and return total matching record count
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public Task<(int count, List<T> data)> SearchAndCount(IEnumerable<T> sourceData, SearchRequest searchRequest)
             => SearchAndCount(sourceData.AsQueryable(), searchRequest);
 
+        /// <summary>
+        /// Get value for specified property from entity
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <param name="propertyName"></param>
+        /// <param name="entity"></param>
+        /// <returns></returns>
         private object GetPropertyValue(PropertyInfo[] properties, string propertyName, T entity)
-        => properties.Where(p => p.Name.ToLower() == propertyName.ToLower()).First().GetValue(entity);
+            => properties.Where(p => p.Name.ToLower() == propertyName.ToLower()).First().GetValue(entity);
 
+        /// <summary>
+        /// Find index of given key element
+        /// </summary>
+        /// <param name="keyColumn"></param>
+        /// <param name="sourceData"></param>
+        /// <param name="entity"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public async Task<int> IndexOf(string keyColumn, IQueryable<T> sourceData, T entity, SearchRequest searchRequest)
         {
             var query = FilterQuery(sourceData, searchRequest);

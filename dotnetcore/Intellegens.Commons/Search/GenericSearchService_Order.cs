@@ -3,6 +3,7 @@ using Intellegens.Commons.Types;
 using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 
@@ -11,6 +12,14 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class, new()
     {
+        private const string exprIfTrueThen1 = " ? 1 : 0 ";
+        private const string exprIfTrueThen0 = " ? 0 : 1 ";
+
+        /// <summary>
+        /// For given SearchOrder model, generates string to place in OrderBy
+        /// </summary>
+        /// <param name="order"></param>
+        /// <returns></returns>
         private string GetOrderingString(SearchOrder order)
         {
             var propertyChainInfo = TypeUtils.GetPropertyInfoPerPathSegment<T>(order.Key).ToList();
@@ -36,16 +45,27 @@ namespace Intellegens.Commons.Search
             return $"it.{string.Join(".", pathSegmentsResolved)}{new String(')', bracketsOpen)} {(order.Ascending ? "ascending" : "descending")}";
         }
 
+        /// <summary>
+        /// Combines multiple query parts into one in order to use them in order by match count.
+        /// Different query parts should be connected with "+" sign
+        /// </summary>
+        /// <param name="queryParts"></param>
+        /// <param name="logicalOperator"></param>
+        /// <returns></returns>
         private (string expression, object[] arguments) CombineQueryPartsAndArgumentsAsHitCount(IEnumerable<(string expression, object[] arguments)> queryParts, LogicOperators logicalOperator)
         {
             var parameters = new List<object>();
             string query = "";
 
+            // Take all expressions and add IIF( ? 1 : 0) if IIF is not already present (? 1 : 0 or ? 0 : 1 if entire expression was negated
+            // at some point
             List<(string expression, object[] arguments)> queryPartsFiltered = queryParts
                 .Where(x => !string.IsNullOrEmpty(x.expression))
-                .Select(x => ((x.expression.Contains(" ? 1 : 0") || x.expression.Contains(" ? 0 : 1")) ? x.expression : $"({x.expression} ? 1 : 0)", x.arguments))
+                .Select(x => ((x.expression.Contains(exprIfTrueThen1) || x.expression.Contains(exprIfTrueThen0)) 
+                                ? x.expression : $"({x.expression} {exprIfTrueThen1})", x.arguments))
                 .ToList();
 
+            // Combines multiple query parts with + operator
             if (queryPartsFiltered.Any())
             {
                 query = string.Join($" + ", queryPartsFiltered.Select(x => x.expression));
@@ -57,10 +77,11 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        ///
+        /// Process criteria for Order by match count.
+        /// Very similar to ProcessCriteria but uses different method for combining multiple criteria
+        /// and has different negation logic
         /// </summary>
         /// <param name="searchCriteria"></param>
-        /// <param name="queryCombineFunction">Function used to combine multiple queries into one</param>
         /// <returns></returns>
         private (string expression, object[] parameters) ProcessCriteriaOrderBy(SearchCriteria searchCriteria)
         {
@@ -105,12 +126,22 @@ namespace Intellegens.Commons.Search
                 combinedQueryParts = CombineQueryPartsAndArgumentsAsHitCount(expressions, searchCriteria.KeysLogic);
             }
 
-            // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
             if (!string.IsNullOrEmpty(combinedQueryParts.expression))
             {
                 combinedQueryParts.expression = $" ({combinedQueryParts.expression}) ";
-                if (searchCriteria.Negate)
-                    combinedQueryParts.expression = combinedQueryParts.expression.Replace("? 1 : 0", "? 0 : 1");
+
+                // when switching one expression to other and back, one of these expressions must be stored as something else
+                const string switchReplacementValue = ">>*?TempReplacement?*<<";
+
+                // if entire expression must be negated, this means that expression inside brackets needs to be
+                // inverted: "? 1 : 0" to "? 0 : 1" and vice-versa
+                if (searchCriteria.Negate) { 
+                    combinedQueryParts.expression = combinedQueryParts
+                        .expression
+                        .Replace(exprIfTrueThen1, switchReplacementValue) // replacement value is not a valid string and will not already be inside expression
+                        .Replace(exprIfTrueThen0, exprIfTrueThen1)
+                        .Replace(switchReplacementValue, exprIfTrueThen0);
+                }
             }
 
             return combinedQueryParts;
@@ -131,13 +162,14 @@ namespace Intellegens.Commons.Search
 
             bool firstOrderByPassed = false;
 
+            // if order by math count was set, generate expression and use it as first order by
             if (searchRequest.OrderByMatchCount)
             {
                 var (expression, parameters) = ProcessCriteriaOrderBy(searchRequest);
                 if (!string.IsNullOrEmpty(expression))
                 {
                     string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression);
-                    sourceData = sourceData.OrderBy(parsingConfig, $"{expressionWithParamsReplaced} desc", parameters);
+                    sourceData = sourceData.OrderBy(parsingConfig, $"{expressionWithParamsReplaced} DESC", parameters);
                     firstOrderByPassed = true;
                 }
             }

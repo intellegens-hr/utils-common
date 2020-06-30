@@ -11,6 +11,11 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class, new()
     {
+        /// <summary>
+        /// Check if given criteria is empty (no keys or values present, no filters present)
+        /// </summary>
+        /// <param name="searchCriteria"></param>
+        /// <returns></returns>
         private bool IsSearchCriteriaEmpty(SearchCriteria searchCriteria)
         {
             var keysOrValuesEmpty = !((searchCriteria.Keys?.Any() ?? false) || (searchCriteria.Values?.Any() ?? false));
