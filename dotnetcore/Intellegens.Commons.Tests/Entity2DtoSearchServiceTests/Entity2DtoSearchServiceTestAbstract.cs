@@ -306,19 +306,19 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
         [Fact]
         public async Task Fulltext_search_should_work_with_any_class()
         {
-            var query = await GenerateTestDataAndFilterQuery(20);
+            var query = await GenerateTestDataAndFilterQuery(100);
             var entity = await query.FirstAsync();
 
             var textToSearch = entity.Text.Substring(0, 4);
 
             var searchRequest = new SearchRequest
             {
-                Limit = 20,
+                Limit = 100,
                 Criteria = new List<SearchCriteria>
                 {
                     new SearchCriteria
                     {
-                        Operator = Operators.FULL_TEXT_SEARCH_CONTAINS,
+                        Operator = Operators.STRING_CONTAINS,
                         Values = new List<string>{ textToSearch }
                     }
                 }
@@ -327,7 +327,7 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
             var expectedCount = query.Where(x => x.Text.ToUpper().Contains(textToSearch.ToUpper()) || x.TestingSessionId.ToUpper().Contains(textToSearch.ToUpper())).Count();
             var data = await searchService.Search(query, searchRequest);
 
-            Assert.True(data.Count == expectedCount);
+            Assert.Equal(expectedCount, data.Count);
         }
     }
 }

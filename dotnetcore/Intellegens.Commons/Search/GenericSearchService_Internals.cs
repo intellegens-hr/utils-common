@@ -179,6 +179,13 @@ namespace Intellegens.Commons.Search
             var keysOrValuesDefined = (searchCriteria.Keys?.Any() ?? false) || (searchCriteria.Values?.Any() ?? false);
             var nestedFiltersDefined = searchCriteria.Criteria?.Any() ?? false;
 
+            // if keys are not defined and values are - this is full text search
+            if (!searchCriteria.Keys.Any() && searchCriteria.Values.Any())
+            {
+                searchCriteria.Keys = FullTextSearchPaths;
+                searchCriteria.KeysLogic = LogicOperators.ANY;
+            }
+
             // if nested filters are defined and keys/values as well - keys and values will be treated as another SearchCriteria
             if (keysOrValuesDefined && nestedFiltersDefined)
             {
@@ -201,20 +208,12 @@ namespace Intellegens.Commons.Search
             {
                 var values = searchCriteria.Values ?? new List<string>();
 
-                bool isFullTextSearch = searchCriteria.Operator == Operators.FULL_TEXT_SEARCH_CONTAINS || searchCriteria.Operator == Operators.FULL_TEXT_SEARCH_WILDCARD;
-                if (isFullTextSearch)
-                {
-                    combinedQueryParts = GetFullTextSearchExpression(values, searchCriteria.ValuesLogic, searchCriteria.Operator);
-                }
-                else
-                {
-                    var keys = searchCriteria.Keys ?? new List<string>();
+                var keys = searchCriteria.Keys ?? new List<string>();
 
-                    var expressions = keys
-                        .Select(key => GetFilterExpression(key, values, searchCriteria.Operator, searchCriteria.ValuesLogic));
+                var expressions = keys
+                    .Select(key => GetFilterExpression(key, values, searchCriteria.Operator, searchCriteria.ValuesLogic));
 
-                    combinedQueryParts = CombineQueryPartsAndArguments(expressions, searchCriteria.KeysLogic);
-                }
+                combinedQueryParts = CombineQueryPartsAndArguments(expressions, searchCriteria.KeysLogic);
             }
 
             // When expression is concatenated, it must be wrapped in brackets with optional NOT (!) in front
@@ -381,38 +380,6 @@ namespace Intellegens.Commons.Search
                 .Replace("_", "\\_")
                 .Replace("*", "%")
                 .Replace("?", "_");
-        }
-
-        private string GetFullTextParameter(string value, Operators fullTextOperator)
-        {
-            if (fullTextOperator == Operators.FULL_TEXT_SEARCH_CONTAINS)
-            {
-                return $"%{value}%";
-            }
-            else if (fullTextOperator == Operators.FULL_TEXT_SEARCH_WILDCARD)
-            {
-                return GetWildcardLikeExpression(value);
-            }
-            else
-            {
-                throw new Exception("Invalid operator for full text search!");
-            }
-        }
-
-        private (string expression, object[] arguments) GetFullTextSearchExpression(List<string> values, LogicOperators logicalOperator, Operators fullTextOperator)
-        {
-            var expressions = new List<(string expression, object[] arguments)>();
-
-            foreach (var path in FullTextSearchPaths)
-            {
-                var pathExpression = values
-                    .Select(x => GetLikeExpression(path, GetFullTextParameter(x, fullTextOperator)))
-                    .Select(x => (x.expression, new List<object> { x.parameter }.ToArray()));
-                expressions.Add(CombineQueryPartsAndArguments(pathExpression, logicalOperator));
-            }
-
-            // OR must be between different path segments
-            return CombineQueryPartsAndArguments(expressions, LogicOperators.ANY);
         }
 
         /// <summary>

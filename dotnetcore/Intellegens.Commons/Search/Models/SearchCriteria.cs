@@ -13,9 +13,7 @@ namespace Intellegens.Commons.Search.Models
         LESS_THAN,
         LESS_THAN_OR_EQUAL_TO,
         GREATER_THAN,
-        GREATER_THAN_OR_EQUAL_TO,
-        FULL_TEXT_SEARCH_CONTAINS,
-        FULL_TEXT_SEARCH_WILDCARD
+        GREATER_THAN_OR_EQUAL_TO
     }
 
     public enum LogicOperators
