@@ -49,18 +49,7 @@ namespace Intellegens.Commons.Search
 
             if (!string.IsNullOrEmpty(expression))
             {
-                // expression contains parameter placeholder defined in const parameterPlaceholder
-                // each query must contain parameters in following pattern: @0, @1, ...
-                // we need to replace placeholder with this kind of expression
-                var expressionParamParts = expression.Split(parameterPlaceholder);
-                var expressionWithParamsReplaced = expressionParamParts[0];
-
-                for (int i = 1; i < expressionParamParts.Length; i++)
-                {
-                    string expr = expressionParamParts[i];
-                    expressionWithParamsReplaced += $"@{i - 1}{expr}"; // parameters start from @0
-                }
-
+                string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression);
                 sourceData = sourceData.Where(parsingConfig, expressionWithParamsReplaced, arguments);
             }
 
