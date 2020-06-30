@@ -69,9 +69,14 @@ namespace Intellegens.Commons.Search.FullTextSearch
             {
                 var props = type.GetProperties().ToList();
 
+                // In case format like "ChildProperty.Property" is used -> first segment needs to be taken
+                var propsToIncludeByPath = propertiesToInclude
+                    .Select(x => x.Split('.')[0])
+                    .ToList();
+
                 // if propertiesToInclude are defined - take them
-                if (propertiesToInclude.Any())
-                    props = props.Where(x => propertiesToInclude.Contains(x.Name)).ToList();
+                if (propsToIncludeByPath.Any())
+                    props = props.Where(x => propsToIncludeByPath.Contains(x.Name)).ToList();
                 // if not - take all string properties
                 else
                     props = props.Where(x => x.PropertyType == typeof(string)).ToList();
@@ -82,7 +87,14 @@ namespace Intellegens.Commons.Search.FullTextSearch
                         if (!string.IsNullOrEmpty(pathPrefix))
                             newPathPrefix = $"{pathPrefix}.{newPathPrefix}";
 
-                        paths.AddRange(GetFullTextSearchPaths(x.PropertyType, pathPrefix: $"{newPathPrefix}", depth: depth + 1));
+                        propsToIncludeByPath = propertiesToInclude
+                            .Select(x => x.Split('.'))
+                            .Where(x => x.Length > 1)
+                            .Select(x => x.Skip(1))
+                            .Select(x => string.Join('.', x))
+                            .ToList();
+
+                        paths.AddRange(GetFullTextSearchPaths(x.PropertyType, propsToIncludeByPath, $"{newPathPrefix}", depth + 1));
                     });
             }
 

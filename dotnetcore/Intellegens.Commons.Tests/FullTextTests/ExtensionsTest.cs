@@ -1,4 +1,5 @@
 ﻿using Intellegens.Commons.Search.FullTextSearch;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Intellegens.Commons.Tests.FullTextTests
@@ -60,6 +61,17 @@ namespace Intellegens.Commons.Tests.FullTextTests
             public DemoClass003 Demo3_2 { get; set; }
         }
 
+        public class DemoClass005
+        {
+            public int Id { get; set; }
+
+            [FullTextSearch("Child.Title")]
+            public DemoClass003 Demo3_1 { get; set; }
+
+            [FullTextSearch("Title")]
+            public List<DemoClass003> Demo3_2 { get; set; }
+        }
+
         [Fact]
         public void Full_text_search_ext_should_return_only_string_props_by_default()
         {
@@ -94,6 +106,15 @@ namespace Intellegens.Commons.Tests.FullTextTests
             Assert.Equal(3, paths.Count);
             Assert.Contains("Demo3_1.Name", paths);
             Assert.Contains("Demo3_1.Child.Name", paths);
+            Assert.Contains("Demo3_2.Title", paths);
+        }
+
+        [Fact]
+        public void Full_text_search_ext_should_return_respect_specified_attribute_paths_4()
+        {
+            var paths = FullTextSearchExtensions.GetFullTextSearchPaths<DemoClass005>();
+            Assert.Equal(2, paths.Count);
+            Assert.Contains("Demo3_1.Child.Title", paths);
             Assert.Contains("Demo3_2.Title", paths);
         }
     }
