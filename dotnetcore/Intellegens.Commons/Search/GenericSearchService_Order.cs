@@ -13,8 +13,10 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class, new()
     {
-        private const string exprIfTrueThen1 = " ? 1 : 0 ";
-        private const string exprIfTrueThen0 = " ? 0 : 1 ";
+        // this is used for order by match count. If matched - add -1, else 0 since ascending sort is used
+        // for some reason, sort didn't work when DESC was used in combination with AutoMapper
+        private const string exprIfTrueThen1 = " ? -1 : 0 ";
+        private const string exprIfTrueThen0 = " ? 0 : -1 ";
 
         /// <summary>
         /// For given SearchOrder model, generates string to place in OrderBy
@@ -43,7 +45,7 @@ namespace Intellegens.Commons.Search
                 }
             }
 
-            return $"it.{string.Join(".", pathSegmentsResolved)}{new String(')', bracketsOpen)} {(order.Ascending ? "ascending" : "descending")}";
+            return $"it.{string.Join(".", pathSegmentsResolved)}{new String(')', bracketsOpen)} {(order.Ascending ? "ASC" : "DESC")}";
         }
 
         /// <summary>
@@ -194,8 +196,8 @@ namespace Intellegens.Commons.Search
                 var (expression, parameters) = ProcessCriteriaOrderBy(searchRequest);
                 if (!string.IsNullOrEmpty(expression))
                 {
-                    string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression);
-                    orderByExpressions.Add($"{expressionWithParamsReplaced} descending");
+                    string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression).Trim();
+                    orderByExpressions.Add($"{expressionWithParamsReplaced}");
                     orderByParameters.AddRange(parameters);
                 }
             }
@@ -210,7 +212,7 @@ namespace Intellegens.Commons.Search
 
             // dynamic Linq enables multiple order bys as comma separated values
             if (orderByExpressions.Any())
-                sourceData = sourceData.OrderBy(parsingConfig, string.Join(',', orderByExpressions), orderByParameters.ToArray());
+                sourceData = sourceData.OrderBy(parsingConfig, string.Join(", ", orderByExpressions), orderByParameters.ToArray());
 
             return sourceData;
         }

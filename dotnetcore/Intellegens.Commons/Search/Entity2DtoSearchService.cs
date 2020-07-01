@@ -139,7 +139,8 @@ namespace Intellegens.Commons.Search
                                 Ascending = x.Ascending,
                                 Key = TranslateDtoToEntityPath(x.Key)
                             })
-                            .ToList()
+                            .ToList(),
+                OrderByMatchCount = dtoSearchRequest.OrderByMatchCount
             };
 
             return searchRequestMapped;
@@ -151,9 +152,9 @@ namespace Intellegens.Commons.Search
 
             return await searchService
                 .FilterQuery(sourceData, searchRequestTranslated)
-                .ProjectTo<TDto>(mapper.ConfigurationProvider)
                 .Skip(searchRequest.Offset)
                 .Take(searchRequest.Limit)
+                .ProjectTo<TDto>(mapper.ConfigurationProvider)
                 .ToListAsync();
         }
 
