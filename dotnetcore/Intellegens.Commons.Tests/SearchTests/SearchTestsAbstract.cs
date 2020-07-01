@@ -31,6 +31,7 @@ namespace Intellegens.Commons.Tests.SearchTests
         {
             return new Faker<SearchTestChildEntity>()
                 .RuleFor(u => u.TestingSessionId, f => testingSessionId)
+                .RuleFor(u => u.Text, f => f.Lorem.Paragraph())
                 .RuleFor(u => u.ParentId, f => parentId);
         }
 

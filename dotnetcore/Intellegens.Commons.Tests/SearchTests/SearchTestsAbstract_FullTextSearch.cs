@@ -30,7 +30,15 @@ namespace Intellegens.Commons.Tests.SearchTests
                 }
             };
 
-            var expectedCount = query.ToList().Where(x => x.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase) || x.TestingSessionId.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)).Count();
+            var expectedCount =
+                query.ToList()
+                .Where(x =>
+                    x.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)
+                    || x.TestingSessionId.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)
+                    || (x.Sibling?.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase) ?? false)
+                    || x.Children.Any(c => c.Text != null && c.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase))
+                )
+                .Count();
             var data = await searchService.Search(query, searchRequest);
 
             Assert.Equal(expectedCount, data.Count);

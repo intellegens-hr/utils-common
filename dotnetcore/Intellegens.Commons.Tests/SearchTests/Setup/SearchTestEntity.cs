@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Intellegens.Commons.Search.FullTextSearch;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,9 +11,12 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         [Key]
         public int Id { get; set; }
 
+        [FullTextSearch]
         public string TestingSessionId { get; set; }
 
+        [FullTextSearch]
         public string Text { get; set; }
+
         public DateTime Date { get; set; }
         public int Numeric { get; set; }
         public decimal Decimal { get; set; }
@@ -21,8 +25,10 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         [ForeignKey(nameof(Sibling))]
         public int? SiblingId { get; set; }
 
+        [FullTextSearch("Text")]
         public SearchTestEntity? Sibling { get; set; }
 
+        [FullTextSearch("Text")]
         [InverseProperty("Parent")]
         public virtual ICollection<SearchTestChildEntity> Children { get; set; } = new List<SearchTestChildEntity>();
 
@@ -39,6 +45,9 @@ namespace Intellegens.Commons.Tests.SearchTests.Setup
         public int ParentId { get; set; }
 
         public string TestingSessionId { get; set; }
+
+        [FullTextSearch("Text")]
+        public string Text { get; set; }
 
         public virtual SearchTestEntity Parent { get; set; }
     }

@@ -59,11 +59,36 @@ namespace Intellegens.Commons.Search
 
             // Take all expressions and add IIF( ? 1 : 0) if IIF is not already present (? 1 : 0 or ? 0 : 1 if entire expression was negated
             // at some point
-            List<(string expression, object[] arguments)> queryPartsFiltered = queryParts
-                .Where(x => !string.IsNullOrEmpty(x.expression))
-                .Select(x => ((x.expression.Contains(exprIfTrueThen1) || x.expression.Contains(exprIfTrueThen0)) 
-                                ? x.expression : $"({x.expression} {exprIfTrueThen1})", x.arguments))
-                .ToList();
+            List<(string expression, object[] arguments)> queryPartsFiltered = new List<(string expression, object[] arguments)>();
+            foreach(var (expression, arguments) in queryParts)
+            {
+                var expressionReplaced = expression; //.Replace(".Any(", ".Sum(");
+
+                if (expressionReplaced.Contains(".Any("))
+                {
+                    // Child queries will always look like:
+                    // (it.Children.Any(xyz0 => (xyz0.Text != null && NpgsqlDbFunctionsExtensions.ILike(EF.Functions, xyz0.Text, @@Parameter@@))))
+
+                    // first, remove outer brackets
+                    while (expressionReplaced.StartsWith('('))
+                        expressionReplaced = expressionReplaced[1..^1];
+
+                    // last open bracket is part of Any() expression
+                    expressionReplaced = $"({expressionReplaced[0..^1]} {exprIfTrueThen1}))";
+
+                    // replace .Any( with .Sum( - these expressions will never occur in string in any other way (parameters are bound)
+                    // so it's safe just to replace them
+                    expressionReplaced = expressionReplaced.Replace(".Any(", ".Sum(");
+                }
+
+                // if expression doesn't have coallesce (? 1: 0 / ? 0 : 1) or .Sum operator -> add colaesce operator
+                if (!(expressionReplaced.Contains(exprIfTrueThen0) || expressionReplaced.Contains(exprIfTrueThen1) || expressionReplaced.Contains(".Sum(")))
+                {
+                    expressionReplaced = $"({expressionReplaced} {exprIfTrueThen1})";
+                }
+
+                queryPartsFiltered.Add((expressionReplaced, arguments));
+            }
 
             // Combines multiple query parts with + operator
             if (queryPartsFiltered.Any())

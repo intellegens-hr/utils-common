@@ -324,7 +324,15 @@ namespace Intellegens.Commons.Tests.Entity2DtoSearchServiceTests
                 }
             };
 
-            var expectedCount = query.Where(x => x.Text.ToUpper().Contains(textToSearch.ToUpper()) || x.TestingSessionId.ToUpper().Contains(textToSearch.ToUpper())).Count();
+            var expectedCount = query
+                .ToList()
+                .Where(x =>
+                    x.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)
+                    || x.TestingSessionId.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)
+                    || (x.Sibling?.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase) ?? false)
+                    || (x.Children?.Any(c => c.Text != null && c.Text.Contains(textToSearch, System.StringComparison.InvariantCultureIgnoreCase)) ?? false)
+                )
+                .Count();
             var data = await searchService.Search(query, searchRequest);
 
             Assert.Equal(expectedCount, data.Count);

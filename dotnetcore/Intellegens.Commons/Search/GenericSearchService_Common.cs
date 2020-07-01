@@ -151,7 +151,7 @@ namespace Intellegens.Commons.Search
             // - likeArgument - expression
             // - parameterPlaceholder - search expression
             // - brackets - number of brackets that need to be closed
-            string expression = likeExpression + $" {notNullExpression} {likeFunction}(EF.Functions, {likeArgument}, {parameterPlaceholder}){new string(')', bracketsOpen)}";
+            string expression = likeExpression + $" ({notNullExpression} {likeFunction}(EF.Functions, {likeArgument}, {parameterPlaceholder}){new string(')', bracketsOpen)})";
 
             return ($"({expression})", likeString);
         }
