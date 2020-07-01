@@ -52,51 +52,65 @@ Search service provides easy way to provide filtering features on any IQueryable
 
 ### Basic strucutres
 ```csharp
-public class SearchRequest
+public enum Operators
 {
-    public int Offset { get; set; }
-    public int Limit { get; set; }
-    public List<SearchFilter> Filters { get; set; }
-    public List<SearchFilter> Search { get; set; }
-    public List<SearchOrder> Ordering { get; set; }
+    EQUALS,
+    STRING_CONTAINS,
+    STRING_WILDCARD,
+    LESS_THAN,
+    LESS_THAN_OR_EQUAL_TO,
+    GREATER_THAN,
+    GREATER_THAN_OR_EQUAL_TO
 }
 
-public class SearchFilter
-{
-    // Keys to filter values by
-    public List<string> Key { get; set; }
-    
-    // EQUALS
-    // STRING_CONTAINS
-    // STRING_MATCH_WILDCARD
-    // LESS_THAN
-    // LESS_THAN_OR_EQUAL_TO
-    // GREATER_THAN
-    // GREATER_THAN_OR_EQUAL_TO
-    // FULL_TEXT_SEARCH
-    public FilterMatchOperators Operator { get; set; }
+public enum LogicOperators{
+  ANY,
+  ALL
+}
 
-    public bool NegateExpression { get; set; } 
-    public List<string> Values { get; set; }
+public class SearchCriteria {
+   // Keys and what operator to place between them (key1 == xyz) AND/OR (key2 == xyz)
+   public List<string> Keys { get; set; }
+   public LogicOperators KeysLogic { get; set; }
+   
+   // Values and what operator to place between them ((key1 == xyz AND/OR key1 == xyz2) AND/OR (key2 == xyz))
+   public List<string> Values { get; set; }
+   public LogicOperators ValuesLogic { get; set; }
+   
+   public Operators Operator { get; set; }
+   public bool Negate { get; set; }
+   
+   // Operator to place between filters (if any)
+   public List<SearchCriteria> Criteria { get; set; }
+   public LogicOperators CriteriaLogic { get; set; }
+}
+
+public class SearchRequest: SearchCriteria {
+   public int Offset { get; set; } = 0;
+   public int Limit { get; set; } = 10;
+   
+   public List<SearchOrder> Order { get; set; }
+   public bool OrderByMatchCount { get; set; }
 }
 
 public class SearchOrder
 {
-    // Key to sort by
     public string Key { get; set; }
-    public bool Ascending { get; set; }
+    public bool Ascending { get; set; } = true;
 }
 ```
+
 As seen above, basic search request consists of following elements:
 - offset - number of records to skip when paging
 - limit - number of records to return when paging
-- filters - multiple filters with AND operator between them
-- search - multiple filters with OR operator between them
+- keys - keys to search, multiple keys have AND/OR between them depending on keys logic
+- values - values to match, multiple values for single key have AND/OR berween them depending on value logic
+- criteria - multiple filters have AND/OR between them depending on criteria logic
 - ordering - define orderBy
 
 ### Full-text search
 
-As seen in `SearchFilter` class, various operators can be used in similar way. One specific operator is `FULL_TEXT_SEARCH`. 
+If keys are not specified for criteria/request, but values are - this is treated as full-text search. 
 
 Full text search works in following way:
 - when requested, service will look for all properties which have specified `FullTextSearch` attribute and automatically do filter/search by these properties
@@ -160,16 +174,20 @@ public class User
 #### Filter all users in tenant 1 with role "A" or "B", ordered by fullname
 ```json
 {
-    "filter": [{
-        "keys": ["tenantId"],
-        "operator": "EQUALS",
-        "values": ["1"]
-    }],
-    "search": [{
-        "keys": ["roles.id"],
-        "operator": "EQUALS",
-        "values": ["A", "B"]
-    }],
+    "criteria": [
+        {
+            "keys": ["tenantId"],
+            "operator": "EQUALS",
+            "values": ["1"]
+        },
+        {
+            "keys": ["roles.id"],
+            "operator": "EQUALS",
+            "values": ["A", "B"],
+            "valuesLogic": "ANY"
+        }
+    ],
+    "criteriaLogic": "ALL",
     "order": [{
         "key": "fullName",
         "ascending": true
@@ -180,8 +198,9 @@ public class User
 #### Filter all users that have "John" in firstName or lastName
 ```json
 {
-    "search": [{
+    "criteria": [{
         "keys": ["firstName", "lastName"],
+        "keysLogic": "ANY",
         "operator": "EQUALS",
         "values": ["John"]
     }]
@@ -191,8 +210,9 @@ public class User
 #### Filter all users that have "John" in firstName and lastName
 ```json
 {
-    "filter": [{
+    "criteria": [{
         "keys": ["firstName", "lastName"],
+        "keysLogic": "ALL",
         "operator": "EQUALS",
         "values": ["John"]
     }]
@@ -202,7 +222,7 @@ public class User
 #### Filter all users born before 1980 or after 2000
 ```json
 {
-    "search": [{
+    "criteria": [{
         "keys": ["dateOfBirth"],
         "operator": "LESS_THAN",
         "values": ["1980-01-01"]
@@ -211,6 +231,7 @@ public class User
         "keys": ["dateOfBirth"],
         "operator": "GREATER_THAN_OR_EQUAL_TO",
         "values": ["2001-01-01"]
-    }]
+    }],
+    "criteriaLogic": "ANY"
 }
 ```

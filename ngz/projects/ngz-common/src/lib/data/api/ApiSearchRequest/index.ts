@@ -108,4 +108,10 @@ export class ApiSearchRequestModel extends ApiSearchRequestCriteriaModel impleme
    */
   @Serializable({ cast: [ApiSearchRequestOrderModel] })
   public order = [];
+
+  /**
+   * If set to true, first rule for ordering result dataset will be
+   * number of matching fields found
+   */
+  public orderByMatchCount = false;
 }

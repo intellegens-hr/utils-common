@@ -62,7 +62,7 @@ namespace Intellegens.Commons.Search
             List<(string expression, object[] arguments)> queryPartsFiltered = new List<(string expression, object[] arguments)>();
             foreach(var (expression, arguments) in queryParts)
             {
-                var expressionReplaced = expression; //.Replace(".Any(", ".Sum(");
+                var expressionReplaced = expression.Trim();
 
                 if (expressionReplaced.Contains(".Any("))
                 {
@@ -71,12 +71,13 @@ namespace Intellegens.Commons.Search
 
                     // first, remove outer brackets
                     while (expressionReplaced.StartsWith('('))
-                        expressionReplaced = expressionReplaced[1..^1];
+                        expressionReplaced = expressionReplaced[1..^1].Trim();
 
-                    // last open bracket is part of Any() expression
+                    // last open bracket is part of Any() expression so:
+                    // concatenate expression up to last bracket, add "? 1: 0" expression, close bracket and then wrap entire expression in brackets
                     expressionReplaced = $"({expressionReplaced[0..^1]} {exprIfTrueThen1}))";
 
-                    // replace .Any( with .Sum( - these expressions will never occur in string in any other way (parameters are bound)
+                    // replace ".Any(" with ".Sum(" - these expressions will never occur in string in any other way (parameters are bound)
                     // so it's safe just to replace them
                     expressionReplaced = expressionReplaced.Replace(".Any(", ".Sum(");
                 }
@@ -133,11 +134,14 @@ namespace Intellegens.Commons.Search
                 });
             }
             (string expression, object[] arguments) combinedQueryParts = ("", null);
+            // if nested filters are defined, process them recursively
             if (nestedFiltersDefined)
             {
                 var criterias = searchCriteria.Criteria.Select(x => ProcessCriteriaOrderBy(x));
                 combinedQueryParts = CombineQueryPartsAndArgumentsAsHitCount(criterias, searchCriteria.CriteriaLogic);
             }
+            // if keys and values are defined (but not nested filters)
+            // build expression for given keys, values and operator
             else if (keysOrValuesDefined)
             {
                 var values = searchCriteria.Values ?? new List<string>();
@@ -199,10 +203,12 @@ namespace Intellegens.Commons.Search
                 }
             }
 
+            // Order by each OrderBy item specified in model
             foreach (var item in orderByItems)
             {
                 var ordering = GetOrderingString(item);
 
+                // First ordering must use OrderBy, others ThenBy
                 if (firstOrderByPassed)
                     sourceData = (sourceData as IOrderedQueryable<T>).ThenBy(ordering);
                 else
