@@ -1,5 +1,6 @@
 ﻿using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Types;
+using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
@@ -184,12 +185,8 @@ namespace Intellegens.Commons.Search
         /// <returns></returns>
         protected IQueryable<T> OrderQuery(IQueryable<T> sourceData, SearchRequest searchRequest)
         {
-            var orderByItems = searchRequest
-                .Order
-                .Where(x => !string.IsNullOrEmpty(x.Key))
-                .ToList();
-
-            bool firstOrderByPassed = false;
+            List<string> orderByExpressions = new List<string>();
+            List<object> orderByParameters = new List<object>();
 
             // if order by math count was set, generate expression and use it as first order by
             if (searchRequest.OrderByMatchCount)
@@ -198,24 +195,22 @@ namespace Intellegens.Commons.Search
                 if (!string.IsNullOrEmpty(expression))
                 {
                     string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression);
-                    sourceData = sourceData.OrderBy(parsingConfig, $"{expressionWithParamsReplaced} DESC", parameters);
-                    firstOrderByPassed = true;
+                    orderByExpressions.Add($"{expressionWithParamsReplaced} descending");
+                    orderByParameters.AddRange(parameters);
                 }
             }
 
-            // Order by each OrderBy item specified in model
-            foreach (var item in orderByItems)
-            {
-                var ordering = GetOrderingString(item);
+            // add all other orderbys specified in request model
+            var orderByItems = searchRequest
+                .Order
+                .Where(x => !string.IsNullOrEmpty(x.Key))
+                .Select(x => GetOrderingString(x));
 
-                // First ordering must use OrderBy, others ThenBy
-                if (firstOrderByPassed)
-                    sourceData = (sourceData as IOrderedQueryable<T>).ThenBy(ordering);
-                else
-                    sourceData = sourceData.OrderBy(ordering);
+            orderByExpressions.AddRange(orderByItems);
 
-                firstOrderByPassed = true;
-            }
+            // dynamic Linq enables multiple order bys as comma separated values
+            if (orderByExpressions.Any())
+                sourceData = sourceData.OrderBy(parsingConfig, string.Join(',', orderByExpressions), orderByParameters.ToArray());
 
             return sourceData;
         }
