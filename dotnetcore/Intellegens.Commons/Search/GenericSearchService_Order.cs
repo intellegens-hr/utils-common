@@ -15,8 +15,8 @@ namespace Intellegens.Commons.Search
     {
         // this is used for order by match count. If matched - add -1, else 0 since ascending sort is used
         // for some reason, sort didn't work when DESC was used in combination with AutoMapper
-        private const string exprIfTrueThen1 = " ? -1 : 0 ";
-        private const string exprIfTrueThen0 = " ? 0 : -1 ";
+        private const string exprIfTrueThen1 = " ? 1 : 0 ";
+        private const string exprIfTrueThen0 = " ? 0 : 1 ";
 
         /// <summary>
         /// For given SearchOrder model, generates string to place in OrderBy
@@ -78,7 +78,9 @@ namespace Intellegens.Commons.Search
 
                     // last open bracket is part of Any() expression so:
                     // concatenate expression up to last bracket, add "? 1: 0" expression, close bracket and then wrap entire expression in brackets
-                    expressionReplaced = $"({expressionReplaced[0..^1]} {exprIfTrueThen1}))";
+                    // in case SUM turns out as null, results will be invalid (null). For that reason, we cast sum result as int? and coallesce it to 0
+                    expressionReplaced = $"(int?({expressionReplaced[0..^1]} {exprIfTrueThen1})) ?? 0)";
+
 
                     // replace ".Any(" with ".Sum(" - these expressions will never occur in string in any other way (parameters are bound)
                     // so it's safe just to replace them
@@ -197,7 +199,7 @@ namespace Intellegens.Commons.Search
                 if (!string.IsNullOrEmpty(expression))
                 {
                     string expressionWithParamsReplaced = ReplaceParametersPlaceholder(expression).Trim();
-                    orderByExpressions.Add($"{expressionWithParamsReplaced}");
+                    orderByExpressions.Add($"{expressionWithParamsReplaced} DESC");
                     orderByParameters.AddRange(parameters);
                 }
             }
