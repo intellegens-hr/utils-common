@@ -78,7 +78,8 @@ namespace Intellegens.Commons.Search
 
                     // last open bracket is part of Any() expression so:
                     // concatenate expression up to last bracket, add "? 1: 0" expression, close bracket and then wrap entire expression in brackets
-                    // in case SUM turns out as null, results will be invalid (null). For that reason, we cast sum result as int? and coallesce it to 0
+                    // in case SUM turns out as null, results will be invalid (entire mathc count chain will be null). 
+                    // For that reason, we cast sum result as int? and coallesce it to 0
                     expressionReplaced = $"(int?({expressionReplaced[0..^1]} {exprIfTrueThen1})) ?? 0)";
 
 

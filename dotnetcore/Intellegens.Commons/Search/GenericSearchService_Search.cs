@@ -24,6 +24,11 @@ namespace Intellegens.Commons.Search
             return keysOrValuesEmpty && nestedFiltersEmpty;
         }
 
+        /// <summary>
+        /// Method to use when parsing SearhRequest from beginning
+        /// </summary>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         private (string expression, object[] parameters) GenerateWhereCriteria(SearchRequest searchRequest)
         {
             // if no filters specified
@@ -34,9 +39,10 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// Get exact match filter expression and parameter
+        /// Get filter expression for given operator and parameter
         /// </summary>
         /// <param name="filterKey"></param>
+        /// /// <param name="matchType"></param>
         /// <param name="currentFilterStringValue">if filter has multiple values, this is current</param>
         /// <returns></returns>
         private (string expression, object parameter) GetOperatorMatchExpression(string filterKey, Operators matchType, string currentFilterStringValue)
@@ -70,6 +76,7 @@ namespace Intellegens.Commons.Search
                 }
             }
 
+            // get c# operator
             var matchOperator = filterMatchTypeToOperatorMap[matchType];
             var expression = $"it.{string.Join(".", pathSegmentsResolved)} {matchOperator} {parameterPlaceholder} {new String(')', bracketsOpen)}";
 
@@ -85,22 +92,26 @@ namespace Intellegens.Commons.Search
         /// <returns></returns>
         private (string expression, object[] arguments) GetFilterExpression(string filterKey, List<string> values, Operators searchOperator, LogicOperators logicOperator)
         {
+            // Check for SQL injection
             ValidateDynamicLinqFieldName(filterKey);
 
             var arguments = new List<object>();
             var expressions = new List<string>();
 
+            // go through all values and based on operator and logic operator, build expression
             foreach (string filterStringValue in values)
             {
                 (string expression, object argument) matchResult;
 
                 switch (searchOperator)
                 {
+                    // uses like
                     case Operators.STRING_CONTAINS:
                         string likeExpression = $"%{filterStringValue}%";
                         matchResult = GetLikeExpression(filterKey, likeExpression);
                         break;
 
+                    // uses like
                     case Operators.STRING_WILDCARD:
                         string wildcardExpression = GetWildcardLikeExpression(filterStringValue);
                         matchResult = GetLikeExpression(filterKey, wildcardExpression);
@@ -122,15 +133,15 @@ namespace Intellegens.Commons.Search
                 arguments.Add(matchResult.argument);
             }
 
+            // concatenate all expressions
             var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicOperator]} ", expressions);
             return (expressionsConcatenated, arguments.ToArray());
         }
 
         /// <summary>
-        ///
+        /// Process Criteria - called recursively if needed
         /// </summary>
         /// <param name="searchCriteria"></param>
-        /// <param name="queryCombineFunction">Function used to combine multiple queries into one</param>
         /// <returns></returns>
         private (string expression, object[] parameters) ProcessCriteriaSearch(SearchCriteria searchCriteria)
         {
@@ -157,11 +168,13 @@ namespace Intellegens.Commons.Search
                 });
             }
             (string expression, object[] arguments) combinedQueryParts = ("", null);
+            // if nested filters are defined - process them
             if (nestedFiltersDefined)
             {
                 var criterias = searchCriteria.Criteria.Select(x => ProcessCriteriaSearch(x));
                 combinedQueryParts = CombineQueryPartsAndArguments(criterias, searchCriteria.CriteriaLogic);
             }
+            // when no nested filters are defined - build filter expressions and combine them
             else if (keysOrValuesDefined)
             {
                 var values = searchCriteria.Values ?? new List<string>();
@@ -196,8 +209,10 @@ namespace Intellegens.Commons.Search
             var parameters = new List<object>();
             string query = "";
 
+            // ignore empty expression (they should not be here anyway)
             var queryPartsFiltered = queryParts.Where(x => !string.IsNullOrEmpty(x.expression)).ToList();
 
+            // in case query parts are present - join them depending on operator
             if (queryPartsFiltered.Any())
             {
                 query = string.Join($" {csharpOperatorsMap[logicalOperator]} ", queryPartsFiltered.Select(x => x.expression));

@@ -13,6 +13,9 @@ namespace Intellegens.Commons.Search
 {
     /// <summary>
     /// This service uses filters based on TDto to filter IQueryable<TEntity> and always return TDto objects (single or list, ...)
+    /// 
+    /// To avoid all issues when filtering/ordering IQueryables which are AutoMapped from entity to some dto, this service uses
+    /// SearchRequest made for TDto, translates it, filters IQueryable<TEntity> and maps it to TDto after doing all EF operations
     /// </summary>
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TDto"></typeparam>
@@ -43,7 +46,7 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// Take string path for DTO (e.g. customerDtos.parentDto.id) to entity path (customers.parent.id).
+        /// Take string path for DTO (e.g. customerDtos.parentDto.id) and map it to entity path (customers.parent.id).
         /// Uses Automapper to translate paths
         /// </summary>
         /// <param name="dtoPath"></param>
@@ -55,12 +58,14 @@ namespace Intellegens.Commons.Search
             var sourceType = typeof(TDto);
             var destinationType = typeof(TEntity);
 
+            // go through all segments and map to entity
             while (segments.Any())
             {
                 var segment = segments[0];
                 segments.RemoveAt(0);
                 var isLastElement = !segments.Any();
 
+                // use automapper to find target property
                 var mapping = mapper.ConfigurationProvider.FindTypeMapFor(sourceType, destinationType);
 
                 var propertyMap = mapping.PropertyMaps
@@ -89,6 +94,11 @@ namespace Intellegens.Commons.Search
                 .Select(x => TranslateDtoToEntityPath(x))
                 .ToList();
 
+        /// <summary>
+        /// Build entity criteria by translating dto criteria
+        /// </summary>
+        /// <param name="searchCriteria"></param>
+        /// <returns></returns>
         private SearchCriteria TranslateSearchCriteriaFromDtoToEntity(SearchCriteria searchCriteria)
         {
             return new SearchCriteria
@@ -146,6 +156,12 @@ namespace Intellegens.Commons.Search
             return searchRequestMapped;
         }
 
+        /// <summary>
+        /// Same as SearchService method but uses IQueryable<TEntity> to do all EF operations and maps it to TDto
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public async Task<List<TDto>> Search(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
         {
             var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
@@ -158,6 +174,12 @@ namespace Intellegens.Commons.Search
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Same as SearchService method - return count and data for given request
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public async Task<(int count, List<TDto> data)> SearchAndCount(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
         {
             var count = await searchService.FilterQuery(sourceData, searchRequest).CountAsync();
@@ -166,6 +188,14 @@ namespace Intellegens.Commons.Search
             return (count, data);
         }
 
+        /// <summary>
+        /// Same as SearchService method - find index of given ID in result set
+        /// </summary>
+        /// <param name="keyColumn"></param>
+        /// <param name="sourceData"></param>
+        /// <param name="dto"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
         public async Task<int> IndexOf(string keyColumn, IQueryable<TEntity> sourceData, TDto dto, SearchRequest searchRequest)
         {
             var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
