@@ -1,3 +1,8 @@
+#### v1.0.9
+
+- `HttpService`'s methods now support an additional `circumvent` argument of type `HttpInterceptorsCircumventionDefinition` providing a way to bypass being processed by HTTP interceptors
+- All `ApiEndpointAdapter`s now expose a `.beforeSearch` event emitter exposing a composed search request for last-minute changes before being executed
+
 #### v1.0.8
 
 - `ApiEndpoint` now exposes a `toString()` method, same as adapters, for converting EnTT instances into presentable strings representation

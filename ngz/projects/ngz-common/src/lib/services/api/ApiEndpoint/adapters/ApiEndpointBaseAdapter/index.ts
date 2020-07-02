@@ -79,8 +79,10 @@ export class ApiEndpointBaseAdapter {
    */
   protected _dataLength = 0;
 
-  @Output()
-  public beforeSearchRequest: EventEmitter<ApiSearchRequestModel> = new EventEmitter();
+  /**
+   * Event fired before search request is fully formed allowing for changes to be made
+   */
+  public beforeSearch: EventEmitter<ApiSearchRequestModel> = new EventEmitter();
 
   constructor () {
     // Set up debounced change event handling
@@ -123,7 +125,7 @@ export class ApiEndpointBaseAdapter {
         if (!this._config.preload) {
 
           // Emit search request so other components can modify data before sending (if needed)
-          this.beforeSearchRequest.emit(this._req);
+          this.beforeSearch.emit(this._req);
 
           // Run search
           const res = await (this._searchReqPromise = this._endpoint.search(this._req));

@@ -36,7 +36,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
   /**
    * Holds array of IDs, or a function returning an array of IDs to exclude from results
    */
-  protected _excludeIds = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] });
+  protected _excludeIds = {} as { [key: string]: string[] } | (() => { [key: string]: string[] });
   /**
    * Gets array of IDs, or a function returning an array of IDs to exclude from results
    */
@@ -78,7 +78,7 @@ export class ApiEndpointToAutocompleteAdapterInternal extends ApiEndpointBaseAda
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // Bind to endpoint
@@ -200,7 +200,7 @@ export class ApiEndpointToAutocompleteAdapter extends ApiEndpointToAutocompleteA
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     // (Re)Create endpoint instance
@@ -256,7 +256,7 @@ export class ApiEndpointToAutocompleteAdapterFactory {
     {
       searchBy     = [] as string[],
       orderBy      = [] as string[],
-      excludeIds   = undefined as { [key: string]: string[] } | (() => { [key: string]: string[] })
+      excludeIds   = {} as { [key: string]: string[] } | (() => { [key: string]: string[] })
     } = {}
   ) {
     const adapter = new ApiEndpointToAutocompleteAdapter(this._endpointFactory);

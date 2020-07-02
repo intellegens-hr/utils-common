@@ -18,7 +18,7 @@ export enum Operators {
   GREATER_THAN_OR_EQUAL_TO = 'GREATER_THAN_OR_EQUAL_TO'
 };
 
-export enum LogicOperators{
+export enum LogicOperators {
   ANY = 'ANY',
   ALL = 'ALL'
 }
@@ -49,7 +49,7 @@ export class ApiSearchRequestCriteriaModel extends EnTT {
   /**
    * Name of the filtering property
    */
-  public keys = undefined as string[];
+  public keys = [] as string[];
 
   /**
    * Relation when matching multiple keys
