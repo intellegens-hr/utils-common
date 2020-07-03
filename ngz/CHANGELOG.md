@@ -1,3 +1,7 @@
+#### v1.0.10
+
+TODO: ...
+
 #### v1.0.9
 
 - Updated API and `ApiSearchRequestModel` to support:
