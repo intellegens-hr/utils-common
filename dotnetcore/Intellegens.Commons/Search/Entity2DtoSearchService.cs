@@ -13,7 +13,7 @@ namespace Intellegens.Commons.Search
 {
     /// <summary>
     /// This service uses filters based on TDto to filter IQueryable<TEntity> and always return TDto objects (single or list, ...)
-    /// 
+    ///
     /// To avoid all issues when filtering/ordering IQueryables which are AutoMapped from entity to some dto, this service uses
     /// SearchRequest made for TDto, translates it, filters IQueryable<TEntity> and maps it to TDto after doing all EF operations
     /// </summary>
@@ -67,6 +67,11 @@ namespace Intellegens.Commons.Search
 
                 // use automapper to find target property
                 var mapping = mapper.ConfigurationProvider.FindTypeMapFor(sourceType, destinationType);
+
+                if (mapping?.PropertyMaps == null)
+                {
+                    throw new Exception($"Missing mappings for: {sourceType.Name} -> {destinationType.Name}");
+                }
 
                 var propertyMap = mapping.PropertyMaps
                     .Where(pm => pm.SourceMember != null)
@@ -182,7 +187,9 @@ namespace Intellegens.Commons.Search
         /// <returns></returns>
         public async Task<(int count, List<TDto> data)> SearchAndCount(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
         {
-            var count = await searchService.FilterQuery(sourceData, searchRequest).CountAsync();
+            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+            var count = await searchService.FilterQuery(sourceData, searchRequestTranslated).CountAsync();
+
             var data = await Search(sourceData, searchRequest);
 
             return (count, data);

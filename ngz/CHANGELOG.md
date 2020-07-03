@@ -1,3 +1,7 @@
+#### v1.0.10
+
+- Fixed API bug translating collections from DTO models to entity models
+
 #### v1.0.9
 
 - Updated API and `ApiSearchRequestModel` to support:
