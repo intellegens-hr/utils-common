@@ -84,13 +84,13 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// Returns dynamic query expression and parameters for given filter and it's property
+        /// Returns dynamic query expressions and parameters for given filter and it's property
         /// </summary>
-        /// <param name="currentKey">SearchFilter has multiple keys, this method parses only given key</param>
-        /// <param name="filter"></param>
-        /// <param name="filteredProperty"></param>
-        /// <returns></returns>
-        private (string expression, object[] arguments) GetFilterExpression(string filterKey, List<string> values, Operators searchOperator, LogicOperators logicOperator)
+        /// <param name="filterKey">SearchFilter has multiple keys, this method parses only given key</param>
+        /// <param name="values"></param>
+        /// <param name="searchOperator"></param>
+        /// <returns>List of expressions and arguments to be used</returns>
+        private (List<string> expressions, object[] arguments) GetFilterExpressions(string filterKey, List<string> values, Operators searchOperator)
         {
             // Check for SQL injection
             ValidateDynamicLinqFieldName(filterKey);
@@ -132,6 +132,21 @@ namespace Intellegens.Commons.Search
                 expressions.Add(matchResult.expression);
                 arguments.Add(matchResult.argument);
             }
+
+            return (expressions, arguments.ToArray());
+        }
+
+        /// <summary>
+        /// Retursn single expression and arguments to use
+        /// </summary>
+        /// <param name="filterKey"></param>
+        /// <param name="values"></param>
+        /// <param name="searchOperator"></param>
+        /// <param name="logicOperator"></param>
+        /// <returns></returns>
+        private (string expression, object[] arguments) GetFilterExpression(string filterKey, List<string> values, Operators searchOperator, LogicOperators logicOperator)
+        {
+           var (expressions, arguments) = GetFilterExpressions(filterKey, values, searchOperator);
 
             // concatenate all expressions
             var expressionsConcatenated = string.Join($" {csharpOperatorsMap[logicOperator]} ", expressions);

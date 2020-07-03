@@ -1,6 +1,5 @@
 ﻿using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Types;
-using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
@@ -16,6 +15,7 @@ namespace Intellegens.Commons.Search
         // this is used for order by match count. If matched - add -1, else 0 since ascending sort is used
         // for some reason, sort didn't work when DESC was used in combination with AutoMapper
         private const string exprIfTrueThen1 = " ? 1 : 0 ";
+
         private const string exprIfTrueThen0 = " ? 0 : 1 ";
 
         /// <summary>
@@ -51,61 +51,142 @@ namespace Intellegens.Commons.Search
         /// <summary>
         /// Combines multiple query parts into one in order to use them in order by match count.
         /// Different query parts should be connected with "+" sign
+        ///
+        /// DISCLAIMER: this method looks like hell, but it's job is simple, please follow comments beneath
+        ///
+        /// These call arguments (List<(List<string> expressions, object[] arguments)>) are used since they
+        /// match output form when parsing entire Criteria object
+        ///
         /// </summary>
-        /// <param name="queryParts"></param>
+        /// <param name="queryPartsSplit">these are </param>
         /// <param name="logicalOperator"></param>
         /// <returns></returns>
-        private (string expression, object[] arguments) CombineQueryPartsAndArgumentsAsHitCount(IEnumerable<(string expression, object[] arguments)> queryParts, LogicOperators logicalOperator)
+        private (string expression, object[] arguments) CombineQueryPartsAndArgumentsAsHitCount(List<(List<string> expressions, object[] arguments)> queryPartsSplit, LogicOperators logic, bool negate = false)
         {
+            // output params
             var parameters = new List<object>();
-            string query = "";
 
-            // Take all expressions and add IIF( ? 1 : 0) if IIF is not already present (? 1 : 0 or ? 0 : 1 if entire expression was negated
-            // at some point
-            List<(string expression, object[] arguments)> queryPartsFiltered = new List<(string expression, object[] arguments)>();
-            foreach(var (expression, arguments) in queryParts)
+            // list of queries to join as output
+            List<string> queryParts = new List<string>();
+
+            foreach (var (expressions, arguments) in queryPartsSplit)
             {
-                var expressionReplaced = expression.Trim();
+                // remove empty expressions (if any)
+                var expressionsFiltered = expressions.Where(x => !string.IsNullOrEmpty(x)).ToList();
 
-                if (expressionReplaced.Contains(".Any("))
+                // this method can be called on expressions that were already combined. Since we manipulate expressions (Any -> Sum, ...), these manipulations
+                // need to be done only once, on first run
+                // if expressions contain .Sum or "? 1 : 0" expressions, they were definitely manipulated
+                var alreadyProcessed = expressionsFiltered.All(x => x.Contains(".Sum(") || (x.Contains("int?") && (x.Contains(exprIfTrueThen0) || x.Contains(exprIfTrueThen1))));
+
+                // if expressions were already manipulated, they should simple be joined by + operator between them and wrapped in brackets
+                if (alreadyProcessed)
                 {
-                    // Child queries will always look like:
-                    // (it.Children.Any(xyz0 => (xyz0.Text != null && NpgsqlDbFunctionsExtensions.ILike(EF.Functions, xyz0.Text, @@Parameter@@))))
-
-                    // first, remove outer brackets
-                    while (expressionReplaced.StartsWith('('))
-                        expressionReplaced = expressionReplaced[1..^1].Trim();
-
-                    // last open bracket is part of Any() expression so:
-                    // concatenate expression up to last bracket, add "? 1: 0" expression, close bracket and then wrap entire expression in brackets
-                    // in case SUM turns out as null, results will be invalid (entire mathc count chain will be null). 
-                    // For that reason, we cast sum result as int? and coallesce it to 0
-                    expressionReplaced = $"(int?({expressionReplaced[0..^1]} {exprIfTrueThen1})) ?? 0)";
-
-
-                    // replace ".Any(" with ".Sum(" - these expressions will never occur in string in any other way (parameters are bound)
-                    // so it's safe just to replace them
-                    expressionReplaced = expressionReplaced.Replace(".Any(", ".Sum(");
+                    string joinExpression = $"({string.Join(")+(", expressionsFiltered)})";
+                    queryParts.Add(joinExpression);
+                    parameters.AddRange(arguments);
                 }
-
-                // if expression doesn't have coallesce (? 1: 0 / ? 0 : 1) or .Sum operator -> add colaesce operator
-                if (!(expressionReplaced.Contains(exprIfTrueThen0) || expressionReplaced.Contains(exprIfTrueThen1) || expressionReplaced.Contains(".Sum(")))
+                // if not, processing must be done
+                // entire idea is to go from:
+                // (it.SomeAttribute == @@PARAMETER@@) && (it.SomeAttribute == @@PARAMETER2@@)
+                // to
+                // ((it.SomeAttribute == @@PARAMETER@@) && (it.SomeAttribute == @@PARAMETER2@@)) ? (((it.SomeAttribute == @@PARAMETER@@) ? 1 : 0) + ((it.SomeAttribute == @@PARAMETER2@@) ? 1 : 0))
+                else
                 {
-                    expressionReplaced = $"({expressionReplaced} {exprIfTrueThen1})";
-                }
+                    // determine operator to use
+                    var operatorValues = csharpOperatorsMap[(LogicOperators)logic];
 
-                queryPartsFiltered.Add((expressionReplaced, arguments));
+                    // this is same expression that would go into where clause
+                    var countIfExpression = string.Join(operatorValues, expressionsFiltered.Select(x => $"({x})"));
+
+                    // to get actual match count, things are bit more complicated since child queries can occur
+                    var countExpressions = new List<string>();
+                    expressionsFiltered.ForEach(expression =>
+                    {
+                        // by default, we simply take expression by expression and add (? 1 : 0) to them
+                        // all expressions are wrapped into int? so generated SQL would have coallesce to zero if for
+                        // any reason expression would turn out to be null.
+                        // In case that happened, all subsequent sums would be null as well
+                        string expressionToAdd = $"(int?(({expression}){exprIfTrueThen1}) ?? 0)";
+
+                        // so, if we have nested query, it'll always look like
+                        // (it.Children.Any(xyz0 =>  (xyz0.Text != null &&  NpgsqlDbFunctionsExtensions.ILike(EF.Functions, xyz0.Text, @@Parameter@@))))
+                        // and we want to get from that to:
+                        // ((it.Children.Any(xyz0 =>  (xyz0.Text != null &&  NpgsqlDbFunctionsExtensions.ILike(EF.Functions, xyz0.Text, @@Parameter@@)))))
+                        // ? ((it.Children.Sum(xyz0 =>  (xyz0.Text != null &&  NpgsqlDbFunctionsExtensions.ILike(EF.Functions, xyz0.Text, @@Parameter@@)) ? 1 : 0)))
+                        // : 0
+                        if (expression.Contains(".Any("))
+                        {
+                            // first, remove outer brackets
+                            while (expression.StartsWith('('))
+                                expression = expression[1..^1].Trim();
+
+                            // last open bracket is part of Any() expression so:
+                            // concatenate expression up to last bracket, add "? 1: 0" expression, close bracket and then wrap entire expression in brackets
+                            // in case SUM turns out as null, results will be invalid (entire mathc count chain will be null).
+                            // For that reason, we cast sum result as int? and coallesce it to 0
+                            expression = $"(int?({expression[0..^1]} {exprIfTrueThen1})) ?? 0)";
+
+                            // replace ".Any(" with ".Sum(" - these expressions will never occur in string in any other way (parameters are bound)
+                            // so it's safe just to replace them
+                            expression = expression.Replace(".Any(", ".Sum(");
+
+                            expressionToAdd = expression;
+                        }
+
+                        countExpressions.Add(expressionToAdd);
+                    });
+
+                    // now all that's left is to join expressions and we're done
+                    var countExpression = string.Join('+', countExpressions);
+
+                    var expression = $"(({countIfExpression}) ? ({countExpression}) : 0)";
+                    List<object> argsDouble = new List<object>();
+                    parameters.AddRange(arguments);
+                    parameters.AddRange(arguments);
+                    queryParts.Add(expression);
+                }
             }
 
             // Combines multiple query parts with + operator
-            if (queryPartsFiltered.Any())
+            string query = "";
+            if (queryParts.Any())
             {
-                query = string.Join($" + ", queryPartsFiltered.Select(x => x.expression));
-                queryPartsFiltered.Select(x => x.arguments).ToList().ForEach(x => parameters.AddRange(x));
+                query = string.Join($" + ", queryParts.Select(x => x));
                 query = $"( {query} )";
             }
 
             return (query, parameters.ToArray());
+        }
+
+        /// <summary>
+        /// This overload will be used when parsing filter as it's for is List of expressions (KEY1 == XXX, KEY2 == XXX, ...)
+        /// </summary>
+        /// <param name="expressions"></param>
+        /// <param name="arguments"></param>
+        /// <param name="logic"></param>
+        /// <param name="negate"></param>
+        /// <returns></returns>
+        private (string expression, object[] arguments) CombineQueryPartsAndArgumentsAsHitCount(List<string> expressions, object[] arguments, LogicOperators logic, bool negate = false)
+        {
+            var queryPartsTransformed = new List<(List<string>, object[])> { (expressions, arguments) };
+            return CombineQueryPartsAndArgumentsAsHitCount(queryPartsTransformed, logic, negate);
+        }
+
+        /// <summary>
+        /// This overload will be called on already parsed expressions which will always have one expressions and arguments array
+        /// </summary>
+        /// <param name="queryPartsSplit"></param>
+        /// <param name="logic"></param>
+        /// <param name="negate"></param>
+        /// <returns></returns>
+        private (string expression, object[] arguments) CombineQueryPartsAndArgumentsAsHitCount(List<(string expressions, object[] arguments)> queryPartsSplit, LogicOperators logic, bool negate = false)
+        {
+            var argumentTransformed = queryPartsSplit
+                .Select(x => (new List<string> { x.expressions }, x.arguments))
+                .ToList();
+
+            return CombineQueryPartsAndArgumentsAsHitCount(argumentTransformed, logic, negate);
         }
 
         /// <summary>
@@ -143,7 +224,11 @@ namespace Intellegens.Commons.Search
             // if nested filters are defined, process them recursively
             if (nestedFiltersDefined)
             {
-                var criterias = searchCriteria.Criteria.Select(x => ProcessCriteriaOrderBy(x));
+                var criterias = searchCriteria.Criteria
+                    .Select(x => ProcessCriteriaOrderBy(x))
+                    .ToList();
+
+                // there is no values logic
                 combinedQueryParts = CombineQueryPartsAndArgumentsAsHitCount(criterias, searchCriteria.CriteriaLogic);
             }
             // if keys and values are defined (but not nested filters)
@@ -155,10 +240,14 @@ namespace Intellegens.Commons.Search
                 var keys = searchCriteria.Keys ?? new List<string>();
 
                 var expressions = keys
-                    .Select(key => GetFilterExpression(key, values, searchCriteria.Operator, searchCriteria.ValuesLogic))
+                    .Select(key => GetFilterExpressions(key, values, searchCriteria.Operator))
                     .ToList();
 
-                combinedQueryParts = CombineQueryPartsAndArgumentsAsHitCount(expressions, searchCriteria.KeysLogic);
+                var expressionsCombined = expressions
+                    .Select(x => CombineQueryPartsAndArgumentsAsHitCount(x.expressions, x.arguments, searchCriteria.ValuesLogic))
+                    .ToList();
+
+                combinedQueryParts = CombineQueryPartsAndArgumentsAsHitCount(expressionsCombined, searchCriteria.KeysLogic);
             }
 
             if (!string.IsNullOrEmpty(combinedQueryParts.expression))
@@ -170,7 +259,8 @@ namespace Intellegens.Commons.Search
 
                 // if entire expression must be negated, this means that expression inside brackets needs to be
                 // inverted: "? 1 : 0" to "? 0 : 1" and vice-versa
-                if (searchCriteria.Negate) { 
+                if (searchCriteria.Negate)
+                {
                     combinedQueryParts.expression = combinedQueryParts
                         .expression
                         .Replace(exprIfTrueThen1, switchReplacementValue) // replacement value is not a valid string and will not already be inside expression
