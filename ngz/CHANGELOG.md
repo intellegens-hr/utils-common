@@ -1,6 +1,6 @@
 #### v1.0.10
 
-TODO: ...
+- Fixed API bug translating collections from DTO models to entity models
 
 #### v1.0.9
 

@@ -187,7 +187,9 @@ namespace Intellegens.Commons.Search
         /// <returns></returns>
         public async Task<(int count, List<TDto> data)> SearchAndCount(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
         {
-            var count = await searchService.FilterQuery(sourceData, searchRequest).CountAsync();
+            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+            var count = await searchService.FilterQuery(sourceData, searchRequestTranslated).CountAsync();
+
             var data = await Search(sourceData, searchRequest);
 
             return (count, data);
