@@ -1,6 +1,6 @@
 {
   "name": "@intellegens/ngz-common",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Angular library containing reusable code shared between multiple projects",
   "scripts": {
     "ng": "ng",

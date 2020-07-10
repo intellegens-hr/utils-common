@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <Version>1.0.10</Version>
+    <Version>1.0.11</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Description>.NET Core library containing reusable code shared between multiple projects</Description>
     <PackageProjectUrl>https://github.com/intellegens-hr/utils-common</PackageProjectUrl>
