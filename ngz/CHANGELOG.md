@@ -1,3 +1,8 @@
+#### v1.0.11
+
+- `ApiEndpoint` no longer validating fetched data when casting into EnTT instance provides performance improvement
+- Updated to Angular v10
+
 #### v1.0.10
 
 - Fixed API bug translating collections from DTO models to entity models

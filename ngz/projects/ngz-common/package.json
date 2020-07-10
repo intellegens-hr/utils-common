@@ -1,6 +1,6 @@
 {
   "name": "@intellegens/ngz-common",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Angular library containing reusable code shared between multiple projects",
   "repository": {
     "type": "git",
@@ -11,7 +11,9 @@
   "license": "MIT",
   "peerDependencies": {
     "@angular/common": "^9.1.4",
-    "@angular/core": "^9.1.4",
-    "tslib": "^1.10.0"
+    "@angular/core": "^9.1.4"
+},
+  "dependencies": {
+    "tslib": "^2.0.0"
   }
 }
