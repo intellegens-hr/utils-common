@@ -2,18 +2,15 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
-import { Subject, interval } from 'rxjs';
-import { debounce } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
-import { ApiEndpointFactory, ApiEndpoint } from '../../';
-import { HttpRequestPromise } from '../../../Http'
+import { ApiEndpointFactory } from '../../';
 
 // Import base
 import { ApiEndpointBaseAdapter } from '../ApiEndpointBaseAdapter';
 
 // Import data models
-import { ApiSearchRequestOrderModel, ApiSearchRequestCriteriaModel } from '../../../../../data';
+import { ApiSearchRequestOrderModel, ApiSearchRequestCriteriaModel, LogicOperators, Operators } from '../../../../../data';
 
 /**
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component (internal implementation)
@@ -50,18 +47,91 @@ export class ApiEndpointToGridAdapterInternal extends ApiEndpointBaseAdapter {
       order.key = e.state.orderingField;
       order.ascending = e.state.orderingAscDirection;
       this._req.order.push(order);
-      this._req.criteria = [];
-      for (const filterKey in e.state.filters) {
-        if (e.state.filters.hasOwnProperty(filterKey) && e.state.filters[filterKey]) {
-          const filter = new ApiSearchRequestCriteriaModel();
-          filter.keys = [filterKey];
-          filter.values = [e.state.filters[filterKey]];
-          this._req.criteria.push(filter);
-        }
-      }
+      this._req.criteria = GridFilterParser.processGridFilters(e.state.filters);
       // (Re)Run search
       this._search();
     }
+  }
+}
+
+/**
+ * Each filter item is defined by its filter item and keys which should be used in search
+ */
+type gridFilterItem = { filteringKeys: string[], filter: gridFilterDefinitionBase };
+/**
+ * Object returned from grid change event
+ */
+type gridFilters = { [key: string]: gridFilterItem };
+/**
+ * Every filter item will have name and function to check is it empty or not
+ */
+type gridFilterDefinitionBase = { name: string, isEmpty: boolean };
+/**
+ * basic filter definiton - text/number input
+ */
+type gridFilterDefinitionSimple = gridFilterDefinitionBase & { values: any[]; containsWildcards: boolean; exactMatch: boolean };
+/**
+ * date filter definition
+ */
+type gridFilterDefinitionRange = gridFilterDefinitionBase & { valueFrom?: string; valueTo?: string; };
+
+class GridFilterParser {
+  /**
+   * Returns new search criteria with default parameters
+   * @param filteringKeys keys to search by
+   */
+  private static _getCriteriaModel (filteringKeys: string[]){
+    const criteria = new ApiSearchRequestCriteriaModel();
+    criteria.keys = filteringKeys;
+    criteria.keysLogic = LogicOperators.ANY;
+
+    return criteria;
+  }
+  /**
+   * Processing logic for all GridFilter models specified in ngz-material module
+   * @param filters filter received from grid event
+   */
+  public static processGridFilters (filters: gridFilters) {
+    const criteria: ApiSearchRequestCriteriaModel[] = [];
+    for (const filterKey in filters) {
+      if (filters.hasOwnProperty(filterKey) && filters[filterKey]) {
+        const gridFilter = filters[filterKey];
+
+        if (gridFilter.filter.isEmpty){
+          return;
+        }
+        // processing logic for simple filter
+        if (gridFilter.filter.name === 'GridFilterSimple') {
+          const filterSimple  = gridFilter.filter as gridFilterDefinitionSimple;
+          const criteriaSimple = this._getCriteriaModel(gridFilter.filteringKeys);
+          criteriaSimple.values = filterSimple.values;
+          criteriaSimple.operator = filterSimple.exactMatch ? Operators.EQUALS
+                                    : filterSimple.containsWildcards ? Operators.STRING_WILDCARD
+                                    : Operators.STRING_CONTAINS;
+          criteria.push(criteriaSimple);
+        }
+        // processing logic for range
+        else if (gridFilter.filter.name === 'GridFilterRange'){
+          const filterDate  = gridFilter.filter as gridFilterDefinitionRange;
+          // value from
+          if (filterDate.valueFrom){
+            const criteriaFrom = this._getCriteriaModel(gridFilter.filteringKeys);
+            criteriaFrom.operator = Operators.GREATER_THAN_OR_EQUAL_TO;
+            criteriaFrom.values = [ filterDate.valueFrom ];
+            criteria.push(criteriaFrom);
+          }
+          // value to
+          if (filterDate.valueTo){
+            const criteriaTo = this._getCriteriaModel(gridFilter.filteringKeys);
+            criteriaTo.operator = Operators.LESS_THAN_OR_EQUAL_TO;
+            criteriaTo.values = [ filterDate.valueTo ];
+            criteria.push(criteriaTo);
+          }
+        }
+      }
+    }
+
+    return criteria;
   }
 }
 

@@ -7,10 +7,10 @@ import { debounce } from 'rxjs/operators';
 import { EnTT } from '@ofzza/entt-rxjs';
 import { ApiEndpoint } from '../../';
 import { HttpRequestPromise } from '../../../Http'
-import { EventEmitter, Output } from '@angular/core';
+import { EventEmitter } from '@angular/core';
 
 // Import data models
-import { ApiSearchRequestModel } from '../../../../../data';
+import { ApiSearchRequestModel, ApiSearchResponseModel } from '../../../../../data';
 
 /**
  * Holds ApiEndpointToGridAdapter configuration
@@ -37,12 +37,12 @@ export class ApiEndpointToGridAdapterConfiguration {
 /**
  * Adapts standard API endpoint(s) for usage by a <ngz-grid /> component (internal implementation)
  */
-export class ApiEndpointBaseAdapter {
+export class ApiEndpointBaseAdapter<T = any> {
 
   /**
    * Injected ApiEndpoint service instance
    */
-  protected _endpoint: ApiEndpoint;
+  protected _endpoint: ApiEndpoint<T>;
 
   /**
    * Holds targeted EnTT class
@@ -62,7 +62,7 @@ export class ApiEndpointBaseAdapter {
   /**
    * Holds lats HTTP search request promise to be sent
    */
-  protected _searchReqPromise: HttpRequestPromise<ApiSearchRequestModel>;
+  protected _searchReqPromise: HttpRequestPromise<ApiSearchResponseModel<T> | T[]>;
 
   /**
    * Observable subject triggered by change event, used to debounce change event handling
@@ -72,7 +72,7 @@ export class ApiEndpointBaseAdapter {
   /**
    * Holds promise of items found by the last search
    */
-  protected _dataSource = Promise.resolve([]);
+  protected _dataSource: Promise<T[]> = Promise.resolve([]);
 
   /**
    * Holds total number of records found by the last search
@@ -113,7 +113,7 @@ export class ApiEndpointBaseAdapter {
    * Executes a search with current search request parameters
    */
   protected _search () {
-    this._dataSource = new Promise(async (resolve, reject) => {
+    this._dataSource = new Promise<T[]>(async (resolve, reject) => {
       try {
 
         // Cancel last request, if in flight

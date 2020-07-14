@@ -22,7 +22,7 @@ export enum ApiEndpointAction {
  * API Endpoint service
  * Provides communication with a standardized API endpoints
  */
-export class ApiEndpoint {
+export class ApiEndpoint<T = any> {
 
   /**
    * Global API error event
@@ -82,10 +82,10 @@ export class ApiEndpoint {
    * @returns All items the endpoint contains
    * @throws Errors returned by the API
    */
-  public list () {
+  public list (): HttpRequestPromise<T[]> {
     return this._action(
       this._http.get(this._endpoint),
-      (data: any[]) => (this._entt ? EnTT.cast(data, { into: [this._entt], validate: false }) : data)
+      (data: T[]): T[] => (this._entt ? EnTT.cast(data, { into: [this._entt], validate: false }) : data)
     );
   }
 
@@ -95,16 +95,17 @@ export class ApiEndpoint {
    * @returns Search results returned by the endpoint
    * @throws Errors returned by the API
    */
-  public search (req: ApiSearchRequestModel) {
+  public search (req: ApiSearchRequestModel): HttpRequestPromise<ApiSearchResponseModel<T>> {
     return this._action(
       this._http._request<ApiSearchResponseModel>('POST', `${this._endpoint}/search`, { body: req }),
       (res) => {
         if (res.success) {
+            res.data = (this._entt ? EnTT.cast(res.data, { into: [this._entt], validate: false }) : res.data);
           // Process and cast successful response
-          const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt], validate: false }) : res.data),
-                metadata = res.metadata;
+          // const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt], validate: false }) : res.data),
+          //      metadata = res.metadata;
           // Return data
-          return { data, metadata };
+          return res;
         } else {
           // Throw errors
           throw new HttpServiceError(res.errors);
@@ -119,10 +120,10 @@ export class ApiEndpoint {
    * @returns Single endpoint item
    * @throws Errors returned by the API
    */
-  public get (id: any) {
+  public get (id: any): HttpRequestPromise<T> {
     return this._action(
       this._http.get(`${this._endpoint}/${id}`),
-      (data: any[]) => {
+      (data: any[]): T => {
         if (data && data.length) {
           return (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]);
         } else {
@@ -138,10 +139,10 @@ export class ApiEndpoint {
    * @returns Newly created item
    * @throws Errors returned by the API
    */
-  public create (item: any) {
+  public create (item: any): HttpRequestPromise<T> {
     return this._action(
       this._http.post(this._endpoint, item),
-      (data: any[]) => {
+      (data: any[]): T => {
         // tslint:disable-next-line: max-line-length
         const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]) : undefined);
         this._triggerActionExecutedEvent(ApiEndpointAction.CREATE, result);
@@ -157,10 +158,10 @@ export class ApiEndpoint {
    * @returns Updated item
    * @throws Errors returned by the API
    */
-  public update (id: any, item: any) {
+  public update (id: any, item: any): HttpRequestPromise<T> {
     return this._action(
       this._http.put(`${this._endpoint}/${id}`, item),
-      (data: any[]) => {
+      (data: any[]): T => {
         // tslint:disable-next-line: max-line-length
         const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]) : undefined);
         this._triggerActionExecutedEvent(ApiEndpointAction.UPDATE, result);
@@ -190,21 +191,27 @@ export class ApiEndpoint {
    * @param processDataCallback Function called on received data, allowed to pre-process it before being resolved
    * @returns HTTP request promise of response casts as EnTT
    */
+  private _action <ApiResponseModelType, PostProcessingModelType> (
+    httpReqPromise: HttpRequestPromise<ApiResponseModelType>,
+    processDataCallback?: (data: ApiResponseModelType) => PostProcessingModelType
+  ): HttpRequestPromise<PostProcessingModelType>;
   private _action <ApiResponseModelType> (
     httpReqPromise: HttpRequestPromise<ApiResponseModelType>,
-    processDataCallback?: (data: ApiResponseModelType) => any
-  ) {
+    processDataCallback?: (data: ApiResponseModelType) => ApiResponseModelType
+  ): HttpRequestPromise<ApiResponseModelType>
+  {
     // Place for internal HTTP request promise to be used by .cancel() call
     let req: HttpRequestPromise<ApiResponseModelType>;
     // Create and return HTTP request instance
-    return new HttpRequestPromise<ApiResponseModelType>(
+    return new HttpRequestPromise(
       // Handle HTTP request promise
       async (resolve, reject) => {
         try {
           // Execute requestor function to get a HTTP request promise
           const data = await (req = httpReqPromise);
           // Process result if required and resolve
-          resolve(processDataCallback ? processDataCallback(data) : data);
+          const resolved: any = processDataCallback ? processDataCallback(data) : data;
+          resolve(resolved);
         } catch (err) {
           reject(err);
         }
@@ -279,8 +286,8 @@ export class ApiEndpointFactory {
    * @param endpoint Endpoint name (relative path)
    * @param entt (Optional) EnTT class to cast response as
    */
-  public create (endpoint?: string, entt?: (new() => EnTT)) {
-    const service = new ApiEndpoint(this._http);
+  public create<T = any> (endpoint?: string, entt?: (new() => EnTT)) {
+    const service = new ApiEndpoint<T>(this._http);
     if (endpoint) {
       service.bind(endpoint, entt);
     }

@@ -4,7 +4,7 @@
 /**
  * Base response data-model
  */
-export class ApiResponseModel {
+export class ApiResponseModel<T = any> {
   /**
    * If request was processed successfully
    */
@@ -12,7 +12,7 @@ export class ApiResponseModel {
   /**
    * Response data
    */
-  public data    = undefined as any[];
+  public data    = undefined as T[];
   /**
    * Response errors
    */

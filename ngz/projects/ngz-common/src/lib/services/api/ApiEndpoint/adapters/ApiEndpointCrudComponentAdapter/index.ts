@@ -2,12 +2,9 @@
 // ----------------------------------------------------------------------------
 
 // Import dependencies
-import { Subject, interval } from 'rxjs';
-import { debounce } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { EnTT } from '@ofzza/entt-rxjs';
 import { ApiEndpointFactory, ApiEndpoint } from '../../';
-import { HttpRequestPromise } from '../../../Http'
 
 /**
  * Marks an EnTT data model property as a primary key
@@ -296,10 +293,10 @@ export class ApiEndpointToCrudComponentAdapter<T extends EnTT> {
       // Register changes with API endpoint
       try {
         // Store changes
-        const updated = await this.endpoint.delete(this._deletingModel[this._primaryKey], this._deletingModel);
+        const deleted = await this.endpoint.delete(this._deletingModel[this._primaryKey], this._deletingModel);
         // Resolve promise
-        resolve(updated);
-        // Stop editing
+        resolve(deleted as any);
+        // Stop deleting
         this.deleteCancel();
       } catch (err) {
         reject(err);

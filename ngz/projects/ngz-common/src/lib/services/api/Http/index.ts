@@ -32,7 +32,7 @@ export class HttpService {
    * Initializes the HTTP service
    * @param url HTTP base url
    */
-  public static initialize (url: string) {
+  public static initialize (url: string): void {
     // Store initialized properties
     HttpService._url = url;
   }
@@ -41,7 +41,7 @@ export class HttpService {
    * Sets authentication token to be used with all requests
    * @param token Authentication token to be used with all requests
    */
-  public static setAuthToken (token: string) {
+  public static setAuthToken (token: string): void {
     sessionStorage.setItem('token', token);
   }
   /**
@@ -54,7 +54,7 @@ export class HttpService {
   /**
    * Revoke authentication token to be used with all requests
    */
-  public static revokeAuthToken () {
+  public static revokeAuthToken (): void {
     sessionStorage.setItem('token', '');
   }
 
@@ -73,7 +73,7 @@ export class HttpService {
    * @returns Promise of HTTP response content
    * @throws Errors returned by the API
    */
-  public get (
+  public get <ApiResponseDataType = any> (
     path: string,
     {
       query      = {} as EnTT | object,
@@ -81,7 +81,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseDataType[]> {
     return this.request('GET', path, { query, headers, options, circumvent });
   }
 
@@ -96,7 +96,7 @@ export class HttpService {
    * @returns Promise of HTTP response data
    * @throws Errors returned by the API
    */
-  public post (
+  public post <ApiResponseDataType = any> (
     path: string,
     body: (ApiRequestModel | object),
     {
@@ -105,7 +105,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseDataType[]> {
     return this.request('POST', path, { body, query, headers, options, circumvent });
   }
 
@@ -120,7 +120,7 @@ export class HttpService {
    * @returns Promise of HTTP response data
    * @throws Errors returned by the API
    */
-  public put (
+  public put <ApiResponseDataType = any> (
     path: string,
     body: (ApiRequestModel | object),
     {
@@ -129,7 +129,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseDataType[]> {
     return this.request('PUT', path, { body, query, headers, options, circumvent });
   }
 
@@ -143,7 +143,7 @@ export class HttpService {
    * @returns Promise of HTTP response content
    * @throws Errors returned by the API
    */
-  public delete (
+  public delete <ApiResponseDataType = any> (
     path: string,
     {
       query      = {} as EnTT | object,
@@ -151,7 +151,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseDataType[]> {
     return this.request('DELETE', path, { query, headers, options, circumvent });
   }
 
@@ -167,7 +167,7 @@ export class HttpService {
    * @returns Promise of Extracted HTTP response data
    * @throws Errors returned by the API
    */
-  public request <ApiResponseModelType extends ApiResponseModel> (
+  public request <ApiResponseModelType extends ApiResponseModel<ApiResponseDataType>, ApiResponseDataType = any> (
     method: string,
     path: string,
     {
@@ -177,7 +177,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseDataType[]> {
     // Send HTTP request
     const req = this._request<ApiResponseModelType>(method, path, { body, query, headers, options, circumvent });
     // Create and return HTTP request promise instance
@@ -210,7 +210,7 @@ export class HttpService {
    * @returns Promise of HTTP response
    * @throws Errors returned by the API
    */
-  public _request <ApiResponseModelType extends ApiResponseModel> (
+  public _request <ApiResponseModelType extends ApiResponseModel<ResponseData>, ResponseData = any> (
     method: string,
     path: string,
     {
@@ -220,7 +220,7 @@ export class HttpService {
       options    = {} as object,
       circumvent = undefined as HttpInterceptorsCircumventionDefinition
     } = {}
-  ): HttpRequestPromise<any> {
+  ): HttpRequestPromise<ApiResponseModelType> {
     try {
 
       // Ready HTTP request
@@ -276,7 +276,8 @@ export class HttpService {
    * @returns HTTP response data
    * @throws Errors returned by the API
    */
-  private _processApiResponse <ApiResponseModelType extends ApiResponseModel> (res: ApiResponseModelType): any {
+  private _processApiResponse <ApiResponseModelType extends ApiResponseModel<ResponseData>, ResponseData = any> (res: ApiResponseModelType)
+  : ResponseData[] {
     // Process API response
     if (res.success) {
       // Process successful response

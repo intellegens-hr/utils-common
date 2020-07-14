@@ -7,7 +7,7 @@ import { ApiResponseModel } from '../ApiResponse';
 /**
  * Base search response data-model
  */
-export class ApiSearchResponseModel extends ApiResponseModel {
+export class ApiSearchResponseModel<T = any> extends ApiResponseModel<T> {
   /**
    * Additional search metadata
    */
