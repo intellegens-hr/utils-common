@@ -85,7 +85,7 @@ export class ApiEndpoint {
   public list () {
     return this._action(
       this._http.get(this._endpoint),
-      (data: any[]) => (this._entt ? EnTT.cast(data, { into: [this._entt] }) : data)
+      (data: any[]) => (this._entt ? EnTT.cast(data, { into: [this._entt], validate: false }) : data)
     );
   }
 
@@ -101,7 +101,7 @@ export class ApiEndpoint {
       (res) => {
         if (res.success) {
           // Process and cast successful response
-          const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt] }) : res.data),
+          const data     = (this._entt ? EnTT.cast(res.data, { into: [this._entt], validate: false }) : res.data),
                 metadata = res.metadata;
           // Return data
           return { data, metadata };
@@ -124,7 +124,7 @@ export class ApiEndpoint {
       this._http.get(`${this._endpoint}/${id}`),
       (data: any[]) => {
         if (data && data.length) {
-          return (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]);
+          return (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]);
         } else {
           return null;
         }
@@ -142,7 +142,8 @@ export class ApiEndpoint {
     return this._action(
       this._http.post(this._endpoint, item),
       (data: any[]) => {
-        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]) : undefined);
+        // tslint:disable-next-line: max-line-length
+        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]) : undefined);
         this._triggerActionExecutedEvent(ApiEndpointAction.CREATE, result);
         return result;
       }
@@ -160,7 +161,8 @@ export class ApiEndpoint {
     return this._action(
       this._http.put(`${this._endpoint}/${id}`, item),
       (data: any[]) => {
-        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt }) : data[0]) : undefined);
+        // tslint:disable-next-line: max-line-length
+        const result = (data && data.length ? (this._entt ? EnTT.cast(data[0], { into: this._entt, validate: false }) : data[0]) : undefined);
         this._triggerActionExecutedEvent(ApiEndpointAction.UPDATE, result);
         return result;
       }
