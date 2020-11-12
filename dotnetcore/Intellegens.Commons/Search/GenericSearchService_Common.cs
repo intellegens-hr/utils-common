@@ -31,7 +31,7 @@ namespace Intellegens.Commons.Search
             {
                 filterInvalid = !DateTime.TryParse(filterValue, out DateTime parsedDate);
                 if (!filterInvalid)
-                    filterValueParsed = parsedDate;
+                    filterValueParsed = parsedDate.ToUniversalTime();
             }
             else if (filterValueType == typeof(bool))
             {
