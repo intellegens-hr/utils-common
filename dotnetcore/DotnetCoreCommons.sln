@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Intellegens.Commons", "Intellegens.Commons\Intellegens.Commons.csproj", "{CFF181B4-D78D-4A3C-BFBC-258A9CDB758C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Intellegens.Commons.Tests", "Intellegens.Commons.Tests\Intellegens.Commons.Tests.csproj", "{7996589E-A31C-4BA7-9C9B-47D4F2F078C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Intellegens.Commons.Tests", "Intellegens.Commons.Tests\Intellegens.Commons.Tests.csproj", "{7996589E-A31C-4BA7-9C9B-47D4F2F078C3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Intellegens.Tests.Commons", "Intellegens.Tests.Commons\Intellegens.Tests.Commons.csproj", "{1F892800-A2D7-41CE-B817-B2C1413BE184}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{7996589E-A31C-4BA7-9C9B-47D4F2F078C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7996589E-A31C-4BA7-9C9B-47D4F2F078C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7996589E-A31C-4BA7-9C9B-47D4F2F078C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F892800-A2D7-41CE-B817-B2C1413BE184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F892800-A2D7-41CE-B817-B2C1413BE184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F892800-A2D7-41CE-B817-B2C1413BE184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F892800-A2D7-41CE-B817-B2C1413BE184}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
