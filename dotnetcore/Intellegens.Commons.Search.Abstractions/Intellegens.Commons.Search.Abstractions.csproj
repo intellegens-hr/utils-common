@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>Intellegens.Commons.Search.Abstractions</AssemblyName>
+    <RootNamespace>Intellegens.Commons.Search</RootNamespace>
+  </PropertyGroup>
+
+</Project>

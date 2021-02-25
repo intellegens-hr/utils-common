@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Intellegens.Commons.Results
 {
@@ -40,6 +41,6 @@ namespace Intellegens.Commons.Results
         }
 
         public bool Success { get; set; }
-        public List<ResultError> Errors { get; set; } = new List<ResultError>();
+        public IList<ResultError> Errors { get; set; } = new List<ResultError>();
     }
 }

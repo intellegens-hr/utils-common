@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Intellegens.Commons.Search.Tests": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "INT_TESTS_DB_POSTGRES_CONNECTION_STRING": "Server=localhost;Port=5432;User Id=platformdbuser;Password=DbVolimJa99;Database=platform_TP87;"
+      }
+    }
+  }
+}
