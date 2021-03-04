@@ -5,7 +5,10 @@ namespace Intellegens.Commons.Search.Tests.Entity2DtoSearchServiceTests
 {
     public class SearchTestsAutomapperPostgres : Entity2DtoSearchServiceTestAbstract
     {
-        public SearchTestsAutomapperPostgres() : base(new SearchDbContextPostgres(), SearchDatabaseProviders.POSTGRES)
+        public SearchTestsAutomapperPostgres() : base(
+            new SearchDbContextPostgres(), 
+            new PostgresSearchService<SearchTestEntity>(),
+            new PostgresSearchService<SearchTestChildEntity>())
         {
         }
     }

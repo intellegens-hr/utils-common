@@ -9,6 +9,23 @@ namespace Intellegens.Commons.Search
     public partial class GenericSearchService<T>
         where T : class, new()
     {
+        protected virtual DynamicLinqProvider DynamicLinqProvider
+            => new DynamicLinqProvider();
+
+        /// <summary>
+        /// Dynamic Linq needs this to know where to look for EF functions
+        /// </summary>
+        private ParsingConfig ParsingConfig
+            => new ParsingConfig
+            {
+                CustomTypeProvider = DynamicLinqProvider
+            };
+
+        protected virtual string GetLikeFunctionName(Type filteredPropertyType)
+        {
+            return "DbFunctionsExtensions.Like";
+        }
+
         /// <summary>
         /// If needed, casts filter value to property type.
         /// Doesn't throw exception in case of invalid values since some search methods don't mind it. For example,
@@ -101,13 +118,7 @@ namespace Intellegens.Commons.Search
             }
 
             // define like function
-            string likeFunction = "DbFunctionsExtensions.Like";
-
-            // in case of string search, postgres uses ILIKE operator to do case insensitive search
-            if (filteredPropertyType == typeof(string) && genericSearchConfig.DatabaseProvider == SearchDatabaseProviders.POSTGRES)
-            {
-                likeFunction = "NpgsqlDbFunctionsExtensions.ILike";
-            }
+            string likeFunction = GetLikeFunctionName(filteredPropertyType);
 
             // this part will split entire path:
             // if input path is a.b.c -> output will be DBFunctions.Like(EFFunction, it.a.b.c, expression)

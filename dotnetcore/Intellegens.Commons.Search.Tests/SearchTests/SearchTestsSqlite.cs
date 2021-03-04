@@ -1,4 +1,3 @@
-using Intellegens.Commons.Search;
 using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Search.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +9,14 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
 {
     public class SearchTestsSqlite : SearchTestsAbstract
     {
-        public SearchTestsSqlite() : base(new SearchDbContextSqlite(), SearchDatabaseProviders.SQLITE)
+        public SearchTestsSqlite() : base(
+            new SearchDbContextSqlite(),
+            new GenericSearchService<SearchTestEntity>(),
+            new GenericSearchService<SearchTestChildEntity>())
+        {
+        }
+
+        public override async Task Comparison_operator_should_work_with_numbers()
         {
         }
 
@@ -40,10 +46,6 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
 
             Assert.NotNull(data[10].SiblingId);
             Assert.Null(data[9].SiblingId);
-        }
-
-        public override async Task Comparison_operator_should_work_with_numbers()
-        {
         }
     }
 }

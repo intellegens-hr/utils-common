@@ -14,14 +14,16 @@ namespace Intellegens.Commons.Search.Tests.Entity2DtoSearchServiceTests
 {
     public abstract class Entity2DtoSearchServiceTestAbstract
     {
-        public Entity2DtoSearchServiceTestAbstract(SearchDbContext dbContext, SearchDatabaseProviders databaseProvider)
+        public Entity2DtoSearchServiceTestAbstract(
+            SearchDbContext dbContext, 
+            IGenericSearchService<SearchTestEntity> genericSearchService,
+            IGenericSearchService<SearchTestChildEntity> genericSearchServiceChildren)
         {
             this.dbContext = dbContext;
             this.dbContext.Database.Migrate();
 
-            var config = new GenericSearchConfig { DatabaseProvider = databaseProvider };
-            searchService = new Entity2DtoSearchService<SearchTestEntity, SearchTestEntityDto>(config, AutomapperConfig.Mapper);
-            searchServiceChildren = new Entity2DtoSearchService<SearchTestChildEntity, SearchTestChildEntityDto>(config, AutomapperConfig.Mapper);
+            searchService = new Entity2DtoSearchService<SearchTestEntity, SearchTestEntityDto>(AutomapperConfig.Mapper, genericSearchService);
+            searchServiceChildren = new Entity2DtoSearchService<SearchTestChildEntity, SearchTestChildEntityDto>(AutomapperConfig.Mapper, genericSearchServiceChildren);
         }
 
         protected readonly SearchDbContext dbContext;

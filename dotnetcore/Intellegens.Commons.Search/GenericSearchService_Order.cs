@@ -50,7 +50,7 @@ namespace Intellegens.Commons.Search
 
             // dynamic Linq enables multiple order bys as comma separated values
             if (orderByExpressions.Any())
-                sourceData = sourceData.OrderBy(parsingConfig, string.Join(", ", orderByExpressions), orderByParameters.ToArray());
+                sourceData = sourceData.OrderBy(ParsingConfig, string.Join(", ", orderByExpressions), orderByParameters.ToArray());
 
             return sourceData;
         }
@@ -108,7 +108,7 @@ namespace Intellegens.Commons.Search
 
                     // to get actual match count, things are bit more complicated since child queries can occur
                     var countExpressions = new List<string>();
-                    foreach(var expressionIter in expressionsFiltered)
+                    foreach (var expressionIter in expressionsFiltered)
                     {
                         var expressionItem = expressionIter;
                         // by default, we simply take expression by expression and add (? 1 : 0) to them
@@ -149,7 +149,7 @@ namespace Intellegens.Commons.Search
                     var countExpression = string.Join('+', countExpressions);
 
                     var expression = $"(({countIfExpression}) ? ({countExpression}) : 0)";
-                    List<object> argsDouble = new ();
+                    List<object> argsDouble = new();
                     parameters.AddRange(arguments);
                     parameters.AddRange(arguments);
                     queryParts.Add(expression);

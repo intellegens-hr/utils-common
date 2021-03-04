@@ -20,6 +20,7 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
             var entities = await query.ToListAsync();
 
             var minDate = entities.Min(x => x.Date);
+            var dateMask = "yyyy-MM-dd";
 
             var searchRequest1 = new SearchRequest
             {
@@ -31,12 +32,13 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
                         Operator = Operators.GREATER_THAN,
-                        Values = new List<string>{ minDate.ToString("o") }
+                        Values = new List<string>{ minDate.AddDays(1).ToString(dateMask) }
                     }
                 },
                 CriteriaLogic = LogicOperators.ALL
             };
 
+            // Empty.
             var searchRequest2 = new SearchRequest
             {
                 Limit = 5,
@@ -47,12 +49,13 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
                         Operator = Operators.LESS_THAN,
-                        Values = new List<string>{ minDate.ToString("o") }
+                        Values = new List<string>{ minDate.ToString(dateMask) }
                     }
                 },
                 CriteriaLogic = LogicOperators.ALL
             };
 
+            // Not empty.
             var searchRequest3 = new SearchRequest
             {
                 Limit = 5,
@@ -63,7 +66,7 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
                     {
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
                         Operator = Operators.LESS_THAN_OR_EQUAL_TO,
-                        Values = new List<string>{ minDate.ToString("o") }
+                        Values = new List<string>{ minDate.AddDays(1).ToString(dateMask) }
                     }
                 },
                 CriteriaLogic = LogicOperators.ALL
@@ -80,7 +83,7 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
                         Keys = new List<string>{nameof( SearchTestEntity.Date ) },
                         Operator = Operators.LESS_THAN,
                         Negate = true,
-                        Values = new List<string>{ minDate.ToString("o") }
+                        Values = new List<string>{ minDate.ToString(dateMask) }
                     }
                 },
                 CriteriaLogic = LogicOperators.ALL
@@ -92,8 +95,8 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
             var data4 = await searchService.Search(query, searchRequest4);
 
             Assert.True(data1.Count < countToGenerate);
-            Assert.True(data2.Count == 0);
-            Assert.True(data3.Count >= 1);
+            Assert.Empty(data2);
+            Assert.True(data3.Any());
             Assert.True(data4.Count == countToGenerate);
         }
 

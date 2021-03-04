@@ -1,5 +1,4 @@
 using Bogus;
-using Intellegens.Commons.Search;
 using Intellegens.Commons.Search.Models;
 using Intellegens.Commons.Search.Tests.SearchTests.Setup;
 using Microsoft.EntityFrameworkCore;
@@ -13,19 +12,64 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
 {
     public abstract partial class SearchTestsAbstract
     {
-        public SearchTestsAbstract(SearchDbContext dbContext, SearchDatabaseProviders databaseProvider)
+        protected readonly SearchDbContext dbContext;
+
+        protected readonly IGenericSearchService<SearchTestEntity> searchService;
+
+        protected readonly IGenericSearchService<SearchTestChildEntity> searchServiceChildren;
+
+        public SearchTestsAbstract(
+            SearchDbContext dbContext,
+            IGenericSearchService<SearchTestEntity> searchService,
+            IGenericSearchService<SearchTestChildEntity> searchServiceChildren)
         {
             this.dbContext = dbContext;
             this.dbContext.Database.Migrate();
 
-            var config = new GenericSearchConfig { DatabaseProvider = databaseProvider };
-            searchService = new GenericSearchService<SearchTestEntity>(config);
-            searchServiceChildren = new GenericSearchService<SearchTestChildEntity>(config);
+            this.searchService = searchService;
+            this.searchServiceChildren = searchServiceChildren;
         }
 
-        protected readonly SearchDbContext dbContext;
-        protected readonly GenericSearchService<SearchTestEntity> searchService;
-        protected readonly GenericSearchService<SearchTestChildEntity> searchServiceChildren;
+        [Fact]
+        public async Task Search_count_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5
+            };
+
+            var (count, data) = await searchService.SearchAndCount(query, searchRequest);
+            Assert.Equal(5, count);
+            Assert.Equal(5, data.Count());
+        }
+
+        [Fact]
+        public async Task Search_limit_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5
+            };
+
+            var result = await searchService.Search(query, searchRequest);
+            Assert.Equal(5, result.Count);
+        }
+
+        [Fact]
+        public async Task Search_offset_should_work()
+        {
+            var query = await GenerateTestDataAndFilterQuery(5);
+            var searchRequest = new SearchRequest
+            {
+                Limit = 5,
+                Offset = 1
+            };
+
+            var result = await searchService.Search(query, searchRequest);
+            Assert.Equal(4, result.Count);
+        }
 
         protected static SearchTestChildEntity GetTestChildEntity(string testingSessionId, int parentId)
         {
@@ -65,47 +109,6 @@ namespace Intellegens.Commons.Search.Tests.SearchTests
 
             await dbContext.SaveChangesAsync();
             return dbContext.SearchTestEntities.Where(x => x.TestingSessionId == testingSessionId);
-        }
-
-        [Fact]
-        public async Task Search_limit_should_work()
-        {
-            var query = await GenerateTestDataAndFilterQuery(5);
-            var searchRequest = new SearchRequest
-            {
-                Limit = 5
-            };
-
-            var result = await searchService.Search(query, searchRequest);
-            Assert.Equal(5, result.Count);
-        }
-
-        [Fact]
-        public async Task Search_offset_should_work()
-        {
-            var query = await GenerateTestDataAndFilterQuery(5);
-            var searchRequest = new SearchRequest
-            {
-                Limit = 5,
-                Offset = 1
-            };
-
-            var result = await searchService.Search(query, searchRequest);
-            Assert.Equal(4, result.Count);
-        }
-
-        [Fact]
-        public async Task Search_count_should_work()
-        {
-            var query = await GenerateTestDataAndFilterQuery(5);
-            var searchRequest = new SearchRequest
-            {
-                Limit = 5
-            };
-
-            var (count, data) = await searchService.SearchAndCount(query, searchRequest);
-            Assert.Equal(5, count);
-            Assert.Equal(5, data.Count());
         }
     }
 }
