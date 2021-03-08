@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Intellegens.Commons.Search.Postgres\Intellegens.Commons.Search.Postgres.csproj" />
     <ProjectReference Include="..\Intellegens.Commons.Search\Intellegens.Commons.Search.csproj" />
   </ItemGroup>
 

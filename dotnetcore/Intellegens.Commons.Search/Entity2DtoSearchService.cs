@@ -23,19 +23,13 @@ namespace Intellegens.Commons.Search
         where TEntity : class, new()
         where TDto : class, new()
     {
-        private readonly GenericSearchService<TEntity> searchService = new GenericSearchService<TEntity>();
+        private readonly IGenericSearchService<TEntity> searchService;
         private readonly IMapper mapper;
 
-        public Entity2DtoSearchService(IMapper mapper)
+        public Entity2DtoSearchService(IMapper mapper, IGenericSearchService<TEntity> searchService)
         {
             this.mapper = mapper;
-            InitFullTextSearchPathTranslation();
-        }
-
-        public Entity2DtoSearchService(IGenericSearchConfig genericSearchConfig, IMapper mapper)
-        {
-            searchService = new GenericSearchService<TEntity>(genericSearchConfig);
-            this.mapper = mapper;
+            this.searchService = searchService;
             InitFullTextSearchPathTranslation();
         }
 

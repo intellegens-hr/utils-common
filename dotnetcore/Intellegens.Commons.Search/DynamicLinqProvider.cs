@@ -15,14 +15,28 @@ namespace Intellegens.Commons.Search
     /// </summary>
     public class DynamicLinqProvider : AbstractDynamicLinqCustomTypeProvider, IDynamicLinkCustomTypeProvider
     {
-        public HashSet<Type> GetCustomTypes()
+        private readonly IEnumerable<Type> additionalCustomTypes = Enumerable.Empty<Type>();
+
+        public DynamicLinqProvider()
+        {
+        }
+
+        public DynamicLinqProvider(IEnumerable<Type> additionalCustomTypes)
+        {
+            this.additionalCustomTypes = additionalCustomTypes;
+        }
+
+        public virtual HashSet<Type> GetCustomTypes()
         {
             HashSet<Type> types = new HashSet<Type>
             {
                 typeof(EF),
-                typeof(NpgsqlDbFunctionsExtensions),
                 typeof(DbFunctionsExtensions)
             };
+
+            foreach (var type in additionalCustomTypes)
+                types.Add(type);
+
             return types;
         }
 
@@ -30,17 +44,21 @@ namespace Intellegens.Commons.Search
         {
             var types = GetCustomTypes();
 
-            List<Tuple<Type, MethodInfo>> list = new List<Tuple<Type, MethodInfo>>();
+            var list = new List<Tuple<Type, MethodInfo>>();
 
             foreach (var type in types)
             {
-                var extensionMethods = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                    .Where(x => x.IsDefined(typeof(ExtensionAttribute), false)).ToList();
+                var extensionMethods = type
+                    .GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                    .Where(x => x.IsDefined(typeof(ExtensionAttribute), false));
 
-                extensionMethods.ForEach(x => list.Add(new Tuple<Type, MethodInfo>(x.GetParameters()[0].ParameterType, x)));
+                foreach (var method in extensionMethods)
+                    list.Add(new Tuple<Type, MethodInfo>(method.GetParameters()[0].ParameterType, method));
             }
 
-            return list.GroupBy(x => x.Item1, tuple => tuple.Item2).ToDictionary(key => key.Key, methods => methods.ToList());
+            return list
+                .GroupBy(x => x.Item1, tuple => tuple.Item2)
+                .ToDictionary(key => key.Key, methods => methods.ToList());
         }
 
         public Type ResolveType(string typeName)

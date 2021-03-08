@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Intellegens.Commons.Search.FullTextSearch
 {
@@ -85,7 +86,7 @@ namespace Intellegens.Commons.Search.FullTextSearch
             // if remaining path is not empty, traverse further
             else
             {
-                var props = type.GetProperties();
+                IEnumerable<PropertyInfo> props = type.GetProperties();
 
                 // In case format like "ChildProperty.Property" is used -> first segment needs to be taken
                 var propsToIncludeByPath = propertiesToInclude
@@ -93,10 +94,10 @@ namespace Intellegens.Commons.Search.FullTextSearch
 
                 // if propertiesToInclude are defined - take them
                 if (propsToIncludeByPath.Any())
-                    props = props.Where(x => propsToIncludeByPath.Contains(x.Name)).ToArray();
+                    props = props.Where(x => propsToIncludeByPath.Contains(x.Name));
                 // if not - take all string properties
                 else
-                    props = props.Where(x => x.PropertyType == typeof(string)).ToArray();
+                    props = props.Where(x => x.PropertyType == typeof(string));
 
                 foreach (var x in props)
                 {
