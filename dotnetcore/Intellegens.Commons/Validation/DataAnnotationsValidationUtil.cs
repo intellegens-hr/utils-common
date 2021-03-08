@@ -9,16 +9,43 @@ namespace Intellegens.Commons.Validation
 {
     public static class DataAnnotationsValidationUtil //If name ends with Validator, Essperta CQRS won't work ...
     {
-        private static List<PropertyInfo> GetPropertiesToValidate<T>()
-        {
-            return typeof(T)
-                .GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public)
-                //.Where(x => x.CustomAttributes.Where(x => x.AttributeType == typeof(ValidationPropertyAttribute)).Any())
-                .ToList();
-        }
-
         private static readonly ConcurrentDictionary<Type, Type?> metadataTypeCache = new ConcurrentDictionary<Type, Type?>();
-        private static readonly ConcurrentDictionary<Type, List<PropertyInfo>> propertiesPerTypeCache = new ConcurrentDictionary<Type, List<PropertyInfo>>();
+
+        private static readonly ConcurrentDictionary<Type, IEnumerable<PropertyInfo>> propertiesPerTypeCache = new ConcurrentDictionary<Type, IEnumerable<PropertyInfo>>();
+
+        //TODO: This probably doesn't work for deep structures.
+        public static List<ValidationResult> ValidateDataAnnotations<T>(T instanceToValidate)
+        {
+            var results = new List<ValidationResult>();
+            var instanceContext = new ValidationContext(instanceToValidate);
+            Validator.TryValidateObject(instanceToValidate, instanceContext, results, true);
+
+            if (!results.Any())
+                foreach (var x in GetPropertiesToValidate<T>())
+                {
+                    var validationObject = instanceToValidate.GetType().GetProperty(x.Name).GetValue(instanceToValidate);
+
+                    if (validationObject == null)
+                        continue;
+
+                    var context = new ValidationContext(validationObject);
+
+                    //First try to validate entire object
+                    List<ValidationResult> newResults = new List<ValidationResult>();
+                    Validator.TryValidateObject(validationObject, context, newResults, true);
+
+                    //if nothing is found - validate each member
+                    if (!newResults.Any())
+                    {
+                        var propertyValidationResults = ValidateProperties(validationObject, context);
+                        results.AddRange(propertyValidationResults);
+                    }
+
+                    results.AddRange(newResults);
+                };
+
+            return results;
+        }
 
         private static Type GetMetadataType(Type type)
         {
@@ -29,6 +56,14 @@ namespace Intellegens.Commons.Validation
             }
 
             return metadataTypeCache[type];
+        }
+
+        private static IEnumerable<PropertyInfo> GetPropertiesToValidate<T>()
+        {
+            return typeof(T)
+                .GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public)
+                //.Where(x => x.CustomAttributes.Where(x => x.AttributeType == typeof(ValidationPropertyAttribute)).Any())
+                ;
         }
 
         private static IEnumerable<ValidationResult> ValidateProperties(object validationObject, ValidationContext validationContext)
@@ -43,7 +78,7 @@ namespace Intellegens.Commons.Validation
 
             //caching
             if (!propertiesPerTypeCache.ContainsKey(validationObjectType))
-                propertiesPerTypeCache[validationObjectType] = validationObject.GetType().GetProperties().ToList();
+                propertiesPerTypeCache[validationObjectType] = validationObject.GetType().GetProperties();
 
             var properties = propertiesPerTypeCache[validationObjectType];
 
@@ -67,41 +102,6 @@ namespace Intellegens.Commons.Validation
                     yield return invalidAttribute.GetValidationResult(value, validationContext);
                 }
             };
-        }
-
-        //TODO: This probably doesn't work for deep structures.
-        public static List<ValidationResult> ValidateDataAnnotations<T>(T instanceToValidate)
-        {
-            var results = new List<ValidationResult>();
-            var instanceContext = new ValidationContext(instanceToValidate);
-            Validator.TryValidateObject(instanceToValidate, instanceContext, results, true);
-
-            if (!results.Any())
-                GetPropertiesToValidate<T>()
-                    .ForEach(x =>
-                    {
-                        var validationObject = instanceToValidate.GetType().GetProperty(x.Name).GetValue(instanceToValidate);
-
-                        if (validationObject == null)
-                            return;
-
-                        var context = new ValidationContext(validationObject);
-
-                        //First try to validate entire object
-                        List<ValidationResult> newResults = new List<ValidationResult>();
-                        Validator.TryValidateObject(validationObject, context, newResults, true);
-
-                        //if nothing is found - validate each member
-                        if (!newResults.Any())
-                        {
-                            var propertyValidationResults = ValidateProperties(validationObject, context);
-                            results.AddRange(propertyValidationResults);
-                        }
-
-                        results.AddRange(newResults);
-                    });
-
-            return results;
         }
     }
 }

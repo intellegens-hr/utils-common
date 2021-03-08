@@ -11,7 +11,7 @@ namespace Intellegens.Commons.Extensions
         /// <param name="enumValueAsString">Enum string value</param>
         /// <returns></returns>
         public static T ToEnum<T>(this string enumValueAsString)
-            where T : System.Enum
+            where T : Enum
         {
             return (T)Enum.Parse(typeof(T), enumValueAsString);
         }
