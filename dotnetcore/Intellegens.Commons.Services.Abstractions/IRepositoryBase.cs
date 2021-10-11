@@ -15,14 +15,10 @@ namespace Intellegens.Commons.Services
     /// </summary>
     /// <typeparam name="TKey">DTO key type</typeparam>
     /// <typeparam name="TDto">DTO type</typeparam>
-    public interface IRepositoryBase<TKey, TDto>
+    public interface IRepositoryBase<TDto, TKey>
          where TDto : class, IDtoBase<TKey>
     {
-        public Task<Result<TDto>> FindById(TKey id);
-
         public Task<Result<IEnumerable<TDto>>> All();
-
-        public Task<Result<TDto>> Update(TDto entityDto);
 
         public Task<Result<TDto>> Create(TDto entityDto);
 
@@ -30,7 +26,7 @@ namespace Intellegens.Commons.Services
 
         public Task<Result> Delete(TDto entityDto);
 
-        public Task<(int? count, IEnumerable<TDto> data)> Search(SearchRequest searchRequest, bool calculateTotalRecordCount = true);
+        public Task<Result<TDto>> FindById(TKey id);
 
         /// <summary>
         /// In given search request, find number of first row with given entity Id
@@ -39,5 +35,13 @@ namespace Intellegens.Commons.Services
         /// <param name="id"></param>
         /// <returns></returns>
         public Task<Result<int>> IndexOf(SearchRequest searchRequest, TKey id);
+
+        public Task<(int? count, IEnumerable<TDto> data)> Search(SearchRequest searchRequest, bool calculateTotalRecordCount = true);
+
+        public Task<Result<TDto>> Update(TDto entityDto);
     }
+
+    public interface IRepositoryBase<TDto> : IRepositoryBase<TDto, int>
+    where TDto : class, IDtoBase<int>
+    { }
 }

@@ -9,8 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Intellegens.Commons.Search.Abstractions\Intellegens.Commons.Search.Abstractions.csproj" />
-    <ProjectReference Include="..\Intellegens.Commons\Intellegens.Commons.csproj" />
+    <ProjectReference Include="..\Intellegens.Commons.Services.Abstractions\Intellegens.Commons.Services.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

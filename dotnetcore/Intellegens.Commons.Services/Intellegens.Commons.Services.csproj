@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Intellegens.Commons.Search\Intellegens.Commons.Search.csproj" />
+    <ProjectReference Include="..\Intellegens.Commons.Services.Abstractions\Intellegens.Commons.Services.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

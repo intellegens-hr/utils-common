@@ -1,39 +1,55 @@
 ﻿using Intellegens.Commons.Mvc.Models;
 using Intellegens.Commons.Results;
-using Intellegens.Commons.Search.Models;
-using Microsoft.AspNetCore.Http;
+using Intellegens.Commons.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Api
 {
     [Route("api/[controller]")]
-    public abstract class CrudApiControllerAbstract<TKey, T> : ControllerBase
-        where T : class
+    public abstract class CrudApiControllerAbstract<TEntity, TDto> : ReadApiControllerAbstract<TEntity, TDto>
+        where TEntity : class
+        where TDto : class, IDtoBase<int>
     {
-        protected virtual void SetStatusCodeFromResult(Result result)
+        public CrudApiControllerAbstract(IRepositoryBase<TDto> repositoryBase) : base(repositoryBase)
         {
-            if (result.Errors.Any())
-                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        }
+    }
+
+    [Route("api/[controller]")]
+    public abstract class CrudApiControllerAbstract<TEntity, TDto, TKey> : ReadApiControllerAbstract<TEntity, TDto, TKey>
+        where TEntity : class
+        where TDto : class, IDtoBase<TKey>
+    {
+        public CrudApiControllerAbstract(IRepositoryBase<TDto, TKey> repositoryBase) : base(repositoryBase)
+        {
         }
 
-        [HttpGet("{id}")]
-        public abstract Task<ApiResult<T>> Get([FromRoute] TKey id);
-
-        [HttpPost("{id}")]
-        public abstract Task<ApiResult<T>> Update([FromBody] T data, [FromRoute] TKey id);
+        [HttpPost("")]
+        public virtual async Task<ApiResult<TDto>> Create([FromBody] TDto data)
+        {
+            var result = await repository.Create(data);
+            SetStatusCodeFromResult(result);
+            return result.ToApiResult<TDto>();
+        }
 
         [HttpDelete("{id}")]
-        public abstract Task<ApiResult> Delete([FromRoute] TKey id);
+        public virtual async Task<ApiResult> Delete([FromRoute] TKey id)
+        {
+            var result = await repository.Delete(id);
+            SetStatusCodeFromResult(result);
+            return result.ToApiResult();
+        }
 
-        [HttpPost("")]
-        public abstract Task<ApiResult<T>> Create([FromBody] T data);
+        [HttpPut("{id}")]
+        public virtual async Task<ApiResult<TDto>> Update([FromBody] TDto data, [FromRoute] TKey id)
+        {
+            if (!data.GetIdValue().Equals(id))
+                return ApiResult.ErrorResult(ResultError.FromErrorCode(CommonErrorCodes.RouteAndPayloadIdMismatch)).ToTypedResult<TDto>();
 
-        [HttpPost("search")]
-        public abstract Task<ApiGridResult<T>> Search([FromBody] SearchRequest request);
-
-        [HttpPost("indexof/{id}")]
-        public abstract Task<ApiResult<int>> IndexOf([FromRoute] TKey id, [FromBody] SearchRequest request);
+            var result = await repository.Update(data);
+            SetStatusCodeFromResult(result);
+            return result.ToApiResult<TDto>();
+        }
     }
 }
