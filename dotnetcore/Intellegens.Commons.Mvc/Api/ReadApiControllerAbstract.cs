@@ -64,8 +64,17 @@ namespace Intellegens.Commons.Api
 
         protected virtual void SetStatusCodeFromResult(Result result)
         {
-            if (result.Errors.Any())
-                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            if (result.Errors.Any() && result.Errors.All(x => x.Code == CommonErrorCodes.NotFound))
+            {
+                SetStatusCode(StatusCodes.Status404NotFound);
+            }
+            else if (result.Errors.Any())
+                SetStatusCode(StatusCodes.Status400BadRequest);
+        }
+
+        protected virtual void SetStatusCode(int statusCode)
+        {
+            HttpContext.Response.StatusCode = statusCode;
         }
     }
 }

@@ -19,4 +19,8 @@
     <ProjectReference Include="..\Intellegens.Commons.Services\Intellegens.Commons.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DbContext\Migrations\" />
+  </ItemGroup>
+
 </Project>

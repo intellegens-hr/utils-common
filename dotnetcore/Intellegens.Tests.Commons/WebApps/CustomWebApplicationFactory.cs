@@ -12,7 +12,7 @@ namespace Intellegens.Tests.Commons.WebApps
         where TStartup : class
         where TStartupBase : class
     {
-        private Assembly baseAssembly;
+        private readonly Assembly baseAssembly;
 
         public CustomWebApplicationFactoryBase()
         {

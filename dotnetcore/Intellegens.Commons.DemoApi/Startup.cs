@@ -59,6 +59,7 @@ namespace Intellegens.Commons.DemoApi
                 .AddScoped<IRepositoryBase<PersonDto>, PersonService>()
                 .AddScoped<IRepositoryBase<StudentDto>, StudentService>()
                 .AddScoped<IRepositoryBase<LecturerDto>, LecturerService>()
+                .AddScoped<IRepositoryBase<StudentCourseDto>, StudentCourseService>()
                 .AddScoped<IRepositoryBase<CourseDto>, CourseService>();
 
             services.AddSwaggerGen(c =>

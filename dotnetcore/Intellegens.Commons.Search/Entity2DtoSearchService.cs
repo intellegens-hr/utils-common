@@ -22,8 +22,8 @@ namespace Intellegens.Commons.Search
     public class Entity2DtoSearchService<TEntity, TDto> : IEntity2DtoSearchService<TEntity, TDto> where TEntity : class, new()
         where TDto : class, new()
     {
-        private readonly IGenericSearchService<TEntity> searchService;
         private readonly IMapper mapper;
+        private readonly IGenericSearchService<TEntity> searchService;
 
         public Entity2DtoSearchService(IMapper mapper, IGenericSearchService<TEntity> searchService)
         {
@@ -32,83 +32,94 @@ namespace Intellegens.Commons.Search
             InitFullTextSearchPathTranslation();
         }
 
+        /// <summary>
+        /// Same as SearchService method - find index of given ID in result set
+        /// </summary>
+        /// <param name="keyColumn"></param>
+        /// <param name="sourceData"></param>
+        /// <param name="dto"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
+        public async Task<int> IndexOf(string keyColumn, IQueryable<TEntity> sourceData, TDto dto, SearchRequest searchRequest)
+        {
+            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+            var entity = mapper.Map<TEntity>(dto);
+            return await searchService.IndexOf(keyColumn, sourceData, entity, searchRequestTranslated);
+        }
+
+        /// <summary>
+        /// Same as SearchService method but uses IQueryable<TEntity> to do all EF operations and maps it to TDto
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
+        public async Task<List<TDto>> Search(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
+        {
+            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+
+            return await searchService
+                .FilterQuery(sourceData, searchRequestTranslated)
+                .Skip(searchRequest.Offset)
+                .Take(searchRequest.Limit)
+                .ProjectTo<TDto>(mapper.ConfigurationProvider)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Same as SearchService method - return count and data for given request
+        /// </summary>
+        /// <param name="sourceData"></param>
+        /// <param name="searchRequest"></param>
+        /// <returns></returns>
+        public async Task<(int count, List<TDto> data)> SearchAndCount(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
+        {
+            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+            var count = await searchService.FilterQuery(sourceData, searchRequestTranslated).CountAsync();
+
+            var data = await Search(sourceData, searchRequest);
+
+            return (count, data);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sourceType"></param>
+        /// <param name="destinationType"></param>
+        /// <param name="path"></param>
+        /// <param name="prefix"></param>
+        /// <returns></returns>
+        private (PropertyMap propertyMap, List<string> prefix) FindMappingMember(Type sourceType, Type destinationType, string path, List<string> prefix = null)
+        {
+            prefix ??= new();
+            var mapping = mapper.ConfigurationProvider.FindTypeMapFor(sourceType, destinationType);
+
+            if (mapping?.PropertyMaps == null)
+            {
+                throw new Exception($"Missing mappings for: {sourceType.Name} -> {destinationType.Name}");
+            }
+
+            var orderedPropertyMaps = mapping.PropertyMaps.OrderBy(x => x.SourceMember != null ? 1 : 2);
+            foreach (var pm in orderedPropertyMaps)
+            {
+                if (pm.SourceMember != null && pm.SourceMember.Name.Equals(path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (pm, prefix);
+                }
+                else if (pm.SourceMember == null)
+                {
+                    prefix.Add(pm.DestinationName);
+                    return FindMappingMember(sourceType, pm.DestinationType, path, prefix);
+                }
+            }
+
+            return (null, prefix);
+        }
+
         private void InitFullTextSearchPathTranslation()
         {
             if (searchService.FullTextSearchPaths.Any())
                 searchService.FullTextSearchPaths = TranslateDtoToEntityPath(FullTextSearchExtensions.GetFullTextSearchPaths<TDto>());
-        }
-
-        /// <summary>
-        /// Take string path for DTO (e.g. customerDtos.parentDto.id) and map it to entity path (customers.parent.id).
-        /// Uses Automapper to translate paths
-        /// </summary>
-        /// <param name="dtoPath"></param>
-        /// <returns></returns>
-        private string TranslateDtoToEntityPath(string dtoPath)
-        {
-            var segments = dtoPath.Split('.').ToList();
-            var newSegments = new List<string>();
-            var sourceType = typeof(TDto);
-            var destinationType = typeof(TEntity);
-
-            // go through all segments and map to entity
-            while (segments.Any())
-            {
-                var segment = segments[0];
-                segments.RemoveAt(0);
-                var isLastElement = !segments.Any();
-
-                // use automapper to find target property
-                var mapping = mapper.ConfigurationProvider.FindTypeMapFor(sourceType, destinationType);
-
-                if (mapping?.PropertyMaps == null)
-                {
-                    throw new Exception($"Missing mappings for: {sourceType.Name} -> {destinationType.Name}");
-                }
-
-                var propertyMap = mapping.PropertyMaps
-                    .Where(pm => pm.SourceMember != null)
-                    .FirstOrDefault(pm =>
-                        pm.SourceMember.Name.Equals(segment, StringComparison.OrdinalIgnoreCase)
-                    );
-
-                if (propertyMap == null)
-                    continue;
-
-                newSegments.Add(propertyMap.DestinationName);
-
-                if (!isLastElement)
-                {
-                    sourceType = propertyMap.SourceType.TransformToUnderlyingEnumerableTypeIfExists();
-                    destinationType = propertyMap.DestinationType.TransformToUnderlyingEnumerableTypeIfExists();
-                }
-            }
-
-            return string.Join('.', newSegments);
-        }
-
-        private IEnumerable<string> TranslateDtoToEntityPath(IEnumerable<string> dtoPaths)
-            => (dtoPaths ?? Enumerable.Empty<string>())
-                .Select(x => TranslateDtoToEntityPath(x));
-
-        /// <summary>
-        /// Build entity criteria by translating dto criteria
-        /// </summary>
-        /// <param name="searchCriteria"></param>
-        /// <returns></returns>
-        private SearchCriteria TranslateSearchCriteriaFromDtoToEntity(SearchCriteria searchCriteria)
-        {
-            return new SearchCriteria
-            {
-                Keys = TranslateDtoToEntityPath(searchCriteria.Keys),
-                KeysLogic = searchCriteria.KeysLogic,
-                Negate = searchCriteria.Negate,
-                Operator = searchCriteria.Operator,
-                Values = searchCriteria.Values,
-                ValuesLogic = searchCriteria.ValuesLogic,
-                Criteria = searchCriteria.Criteria?.Select(x => TranslateSearchCriteriaFromDtoToEntity(x)) ?? Enumerable.Empty<SearchCriteria>(),
-                CriteriaLogic = searchCriteria.CriteriaLogic
-            };
         }
 
         /// <summary>
@@ -152,52 +163,66 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// Same as SearchService method but uses IQueryable<TEntity> to do all EF operations and maps it to TDto
+        /// Take string path for DTO (e.g. customerDtos.parentDto.id) and map it to entity path (customers.parent.id).
+        /// Uses Automapper to translate paths
         /// </summary>
-        /// <param name="sourceData"></param>
-        /// <param name="searchRequest"></param>
+        /// <param name="dtoPath"></param>
         /// <returns></returns>
-        public async Task<List<TDto>> Search(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
+        private string TranslateDtoToEntityPath(string dtoPath)
         {
-            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
+            var segments = dtoPath.Split('.').ToList();
+            var newSegments = new List<string>();
+            var sourceType = typeof(TDto);
+            var destinationType = typeof(TEntity);
 
-            return await searchService
-                .FilterQuery(sourceData, searchRequestTranslated)
-                .Skip(searchRequest.Offset)
-                .Take(searchRequest.Limit)
-                .ProjectTo<TDto>(mapper.ConfigurationProvider)
-                .ToListAsync();
+            // go through all segments and map to entity
+            while (segments.Any())
+            {
+                var segment = segments[0];
+                segments.RemoveAt(0);
+                var isLastElement = !segments.Any();
+
+                // use automapper to find target property
+                var (propertyMap, prefix) = FindMappingMember(sourceType, destinationType, segment);
+
+                if (propertyMap == null)
+                    continue;
+
+                newSegments.AddRange(prefix);
+                newSegments.Add(propertyMap.DestinationName);
+
+                if (!isLastElement)
+                {
+                    sourceType = propertyMap.SourceType.TransformToUnderlyingEnumerableTypeIfExists();
+                    destinationType = propertyMap.DestinationType.TransformToUnderlyingEnumerableTypeIfExists();
+                }
+            }
+
+            return string.Join('.', newSegments);
         }
 
-        /// <summary>
-        /// Same as SearchService method - return count and data for given request
-        /// </summary>
-        /// <param name="sourceData"></param>
-        /// <param name="searchRequest"></param>
-        /// <returns></returns>
-        public async Task<(int count, List<TDto> data)> SearchAndCount(IQueryable<TEntity> sourceData, SearchRequest searchRequest)
-        {
-            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
-            var count = await searchService.FilterQuery(sourceData, searchRequestTranslated).CountAsync();
-
-            var data = await Search(sourceData, searchRequest);
-
-            return (count, data);
-        }
+        private IEnumerable<string> TranslateDtoToEntityPath(IEnumerable<string> dtoPaths)
+            => (dtoPaths ?? Enumerable.Empty<string>())
+                .Select(x => TranslateDtoToEntityPath(x));
 
         /// <summary>
-        /// Same as SearchService method - find index of given ID in result set
+        /// Build entity criteria by translating dto criteria
         /// </summary>
-        /// <param name="keyColumn"></param>
-        /// <param name="sourceData"></param>
-        /// <param name="dto"></param>
-        /// <param name="searchRequest"></param>
+        /// <param name="searchCriteria"></param>
         /// <returns></returns>
-        public async Task<int> IndexOf(string keyColumn, IQueryable<TEntity> sourceData, TDto dto, SearchRequest searchRequest)
+        private SearchCriteria TranslateSearchCriteriaFromDtoToEntity(SearchCriteria searchCriteria)
         {
-            var searchRequestTranslated = TranslateDtoRequestToEntityRequest(searchRequest);
-            var entity = mapper.Map<TEntity>(dto);
-            return await searchService.IndexOf(keyColumn, sourceData, entity, searchRequestTranslated);
+            return new SearchCriteria
+            {
+                Keys = TranslateDtoToEntityPath(searchCriteria.Keys),
+                KeysLogic = searchCriteria.KeysLogic,
+                Negate = searchCriteria.Negate,
+                Operator = searchCriteria.Operator,
+                Values = searchCriteria.Values,
+                ValuesLogic = searchCriteria.ValuesLogic,
+                Criteria = searchCriteria.Criteria?.Select(x => TranslateSearchCriteriaFromDtoToEntity(x)) ?? Enumerable.Empty<SearchCriteria>(),
+                CriteriaLogic = searchCriteria.CriteriaLogic
+            };
         }
     }
 }

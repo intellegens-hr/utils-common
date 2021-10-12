@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Intellegens.Commons.DemoApi.DbContext.Migrations
 {
@@ -12,6 +13,7 @@ namespace Intellegens.Commons.DemoApi.DbContext.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    DateOfBirth = table.Column<DateTime>(type: "TEXT", nullable: false),
                     FullName = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
@@ -89,6 +91,7 @@ namespace Intellegens.Commons.DemoApi.DbContext.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StudentCourses", x => x.Id);
+                    table.UniqueConstraint("AK_StudentCourses_CourseId_StudentId", x => new { x.CourseId, x.StudentId });
                     table.ForeignKey(
                         name: "FK_StudentCourses_Courses_CourseId",
                         column: x => x.CourseId,
@@ -112,11 +115,6 @@ namespace Intellegens.Commons.DemoApi.DbContext.Migrations
                 name: "IX_Lecturers_PersonId",
                 table: "Lecturers",
                 column: "PersonId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StudentCourses_CourseId",
-                table: "StudentCourses",
-                column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StudentCourses_StudentId",

@@ -108,7 +108,7 @@ namespace Intellegens.Commons.Services
 
         public virtual async Task<Result<TDto>> FindById(TKey id)
         {
-            var dto = await GetDtoQueryableById(id).FirstAsync();
+            var dto = await GetDtoQueryableById(id).FirstOrDefaultAsync();
 
             if (dto == null)
                 return Result<TDto>.ErrorDataResult(CommonErrorCodes.NotFound);

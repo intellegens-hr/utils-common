@@ -1,6 +1,7 @@
 ﻿using Intellegens.Commons.Mvc.Models;
 using Intellegens.Commons.Results;
 using Intellegens.Commons.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -45,7 +46,10 @@ namespace Intellegens.Commons.Api
         public virtual async Task<ApiResult<TDto>> Update([FromBody] TDto data, [FromRoute] TKey id)
         {
             if (!data.GetIdValue().Equals(id))
+            {
+                SetStatusCode(StatusCodes.Status400BadRequest);
                 return ApiResult.ErrorResult(ResultError.FromErrorCode(CommonErrorCodes.RouteAndPayloadIdMismatch)).ToTypedResult<TDto>();
+            }
 
             var result = await repository.Update(data);
             SetStatusCodeFromResult(result);
