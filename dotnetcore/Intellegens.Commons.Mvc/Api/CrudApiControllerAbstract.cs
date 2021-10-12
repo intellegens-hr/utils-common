@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Intellegens.Commons.Api
 {
     [Route("api/[controller]")]
-    public abstract class CrudApiControllerAbstract<TEntity, TDto> : ReadApiControllerAbstract<TEntity, TDto>
+    public abstract class CrudApiControllerAbstract<TEntity, TDto> : CrudApiControllerAbstract<TEntity, TDto, int>
         where TEntity : class
         where TDto : class, IDtoBase<int>
     {

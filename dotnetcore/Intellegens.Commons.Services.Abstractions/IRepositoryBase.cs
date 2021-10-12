@@ -5,6 +5,11 @@ using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Services
 {
+    public interface IRepositoryBase<TDto> : IRepositoryBase<TDto, int>
+        where TDto : class, IDtoBase<int>
+    {
+    }
+
     /// <summary>
     /// When constructing services, two basic types should be used:
     /// - entity used by ORM
@@ -40,8 +45,4 @@ namespace Intellegens.Commons.Services
 
         public Task<Result<TDto>> Update(TDto entityDto);
     }
-
-    public interface IRepositoryBase<TDto> : IRepositoryBase<TDto, int>
-    where TDto : class, IDtoBase<int>
-    { }
 }

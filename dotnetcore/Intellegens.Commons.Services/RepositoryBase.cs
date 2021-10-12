@@ -15,16 +15,16 @@ using System.Threading.Tasks;
 
 namespace Intellegens.Commons.Services
 {
-    public abstract class RepositoryBase<TDto, TEntity> : RepositoryBase<TDto, TEntity, int>
+    public abstract class RepositoryBase<TEntity, TDto> : RepositoryBase<TEntity, TDto, int>, IRepositoryBase<TDto>
             where TDto : class, IDtoBase<int>, new()
             where TEntity : class, new()
     {
-        public RepositoryBase(DbContext dbContext, IMapper mapper, GenericSearchService<TEntity> genericSearchService) : base(dbContext, mapper, genericSearchService)
+        public RepositoryBase(DbContext dbContext, IMapper mapper, ISearchServiceFactory searchServiceFactory) : base(dbContext, mapper, searchServiceFactory)
         {
         }
     }
 
-    public abstract class RepositoryBase<TDto, TEntity, TKey> : IRepositoryBase<TDto, TKey>
+    public abstract class RepositoryBase<TEntity, TDto, TKey> : IRepositoryBase<TDto, TKey>
             where TDto : class, IDtoBase<TKey>, new()
             where TEntity : class, new()
     {
@@ -33,13 +33,13 @@ namespace Intellegens.Commons.Services
 
         protected readonly IMapper mapper;
 
-        protected readonly Entity2DtoSearchService<TEntity, TDto> searchService;
+        protected readonly IEntity2DtoSearchService<TEntity, TDto> searchService;
 
-        public RepositoryBase(DbContext dbContext, IMapper mapper, GenericSearchService<TEntity> genericSearchService)
+        public RepositoryBase(DbContext dbContext, IMapper mapper, ISearchServiceFactory searchServiceFactory)
         {
             this.dbContext = dbContext;
             this.mapper = mapper;
-            this.searchService = new Entity2DtoSearchService<TEntity, TDto>(mapper, genericSearchService);
+            this.searchService = searchServiceFactory.GetEntity2DtoSearchService<TEntity, TDto>();
             dbSet = dbContext.Set<TEntity>();
         }
 

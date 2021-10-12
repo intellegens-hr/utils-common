@@ -19,8 +19,7 @@ namespace Intellegens.Commons.Search
     /// </summary>
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TDto"></typeparam>
-    public class Entity2DtoSearchService<TEntity, TDto>
-        where TEntity : class, new()
+    public class Entity2DtoSearchService<TEntity, TDto> : IEntity2DtoSearchService<TEntity, TDto> where TEntity : class, new()
         where TDto : class, new()
     {
         private readonly IGenericSearchService<TEntity> searchService;

@@ -1,0 +1,7 @@
+﻿namespace Intellegens.Commons.DemoApi.Dto
+{
+    public class PersonDto : BaseDto
+    {
+        public string FullName { get; set; }
+    }
+}
