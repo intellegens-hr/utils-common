@@ -82,12 +82,12 @@ namespace Intellegens.Commons.Search
         }
 
         /// <summary>
-        /// 
+        /// For given path segment, find its mapping by going through given mapping types.
         /// </summary>
         /// <param name="sourceType"></param>
         /// <param name="destinationType"></param>
-        /// <param name="path"></param>
-        /// <param name="prefix"></param>
+        /// <param name="path">Path segment to check</param>
+        /// <param name="prefix">In case mapped property belongs to nested property, this will contain entire path</param>
         /// <returns></returns>
         private (PropertyMap propertyMap, List<string> prefix) FindMappingMember(Type sourceType, Type destinationType, string path, List<string> prefix = null)
         {
@@ -102,11 +102,19 @@ namespace Intellegens.Commons.Search
             var orderedPropertyMaps = mapping.PropertyMaps.OrderBy(x => x.SourceMember != null ? 1 : 2);
             foreach (var pm in orderedPropertyMaps)
             {
+                // In case property is not mapped - skip it.
+                if (!pm.IsMapped)
+                {
+                    continue;
+                }
+
+                // Check if there's a property mapping.
                 if (pm.SourceMember != null && pm.SourceMember.Name.Equals(path, StringComparison.OrdinalIgnoreCase))
                 {
                     return (pm, prefix);
                 }
-                else if (pm.SourceMember == null)
+                // Check if there is property mapping that use some other type mapping
+                else if (pm.SourceMember == null && pm.DestinationType?.IsClass == true)
                 {
                     prefix.Add(pm.DestinationName);
                     return FindMappingMember(sourceType, pm.DestinationType, path, prefix);

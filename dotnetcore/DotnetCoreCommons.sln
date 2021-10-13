@@ -31,6 +31,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{E2BBC143-4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Intellegens.Commons.DemoApi.Tests", "Intellegens.Commons.DemoApi.Tests\Intellegens.Commons.DemoApi.Tests.csproj", "{C2E7BCB6-5092-4AA8-BE2D-BA1A80BD4254}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{790750B0-D236-4762-B732-15D9E65B707D}"
+	ProjectSection(SolutionItems) = preProject
+		intellegens_logo.png = intellegens_logo.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

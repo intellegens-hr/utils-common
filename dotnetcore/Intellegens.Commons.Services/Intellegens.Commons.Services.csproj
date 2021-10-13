@@ -2,11 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.1.0</Version>
+    <PackageIcon>intellegens_logo.png</PackageIcon>
+    <PackageIconUrl />
+    <Company>Intellegens</Company>
+    <PackageProjectUrl>https://github.com/intellegens-hr/utils-common</PackageProjectUrl>
+    <Description>.NET library containing reusable code shared between multiple projects</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Intellegens.Commons.Search\Intellegens.Commons.Search.csproj" />
     <ProjectReference Include="..\Intellegens.Commons.Services.Abstractions\Intellegens.Commons.Services.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\intellegens_logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
